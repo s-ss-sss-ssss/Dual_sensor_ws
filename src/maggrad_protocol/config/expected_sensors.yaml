@@ -1,0 +1,6 @@
+# Configure exact identifiers emitted by your firmware before using complete.
+# AK: [bus, mask]; TMAG: [ch_mask, addr]. No fixed device IDs are specified
+# in the wire protocol; an empty configuration makes every round complete.
+expected_ak: []
+expected_tmag: []
+expect_icm: false

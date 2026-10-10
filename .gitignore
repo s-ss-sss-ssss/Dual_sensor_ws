@@ -1,0 +1,22 @@
+# catkin build outputs and machine-local profile (configured with catkin config)
+.catkin_tools/
+build/
+devel/
+install/
+logs/
+
+# Runtime data
+data/*
+!data/.gitkeep
+*.bag
+*.bag.active
+
+# Python and editor artifacts
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+.vscode/
+.idea/
+*.swp
+.DS_Store

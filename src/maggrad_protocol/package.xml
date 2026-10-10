@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>maggrad_protocol</name>
+  <version>0.1.0</version>
+  <description>Typed MagGrad v2 ROUND decoding from serial_frame_bridge.</description>
+  <maintainer email="maintainer@example.com">MagGrad maintainers</maintainer>
+  <license>BSD-3-Clause</license>
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>message_generation</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>diagnostic_msgs</build_depend>
+  <build_depend>serial_frame_bridge</build_depend>
+  <build_export_depend>message_runtime</build_export_depend>
+  <build_export_depend>std_msgs</build_export_depend>
+  <build_export_depend>roscpp</build_export_depend>
+  <build_export_depend>diagnostic_msgs</build_export_depend>
+  <build_export_depend>serial_frame_bridge</build_export_depend>
+  <exec_depend>message_runtime</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>roscpp</exec_depend>
+  <exec_depend>diagnostic_msgs</exec_depend>
+  <exec_depend>serial_frame_bridge</exec_depend>
+</package>
