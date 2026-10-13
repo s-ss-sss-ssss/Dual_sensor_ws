@@ -1,8 +1,16 @@
 <launch>
   <arg name="port" default="/dev/maggrad" />
   <arg name="baud_rate" default="115200" />
+  <arg name="raw_frame_topic" default="/serial_frame_bridge/raw_frames" />
+  <arg name="diagnostics_topic" default="/serial_frame_bridge/diagnostics" />
+  <arg name="frame_queue_size" default="512" />
+  <arg name="publish_batch_size" default="512" />
   <node pkg="serial_frame_bridge" type="serial_frame_bridge_node" name="serial_frame_bridge" output="screen">
     <param name="port" value="$(arg port)" />
     <param name="baud_rate" value="$(arg baud_rate)" />
+    <param name="frame_queue_size" value="$(arg frame_queue_size)" />
+    <param name="publish_batch_size" value="$(arg publish_batch_size)" />
+    <remap from="~raw_frames" to="$(arg raw_frame_topic)" />
+    <remap from="~diagnostics" to="$(arg diagnostics_topic)" />
   </node>
 </launch>

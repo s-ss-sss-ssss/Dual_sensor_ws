@@ -1,9 +1,12 @@
 <launch>
   <arg name="raw_frame_topic" default="/serial_frame_bridge/raw_frames"/>
   <arg name="sample_topic" default="/maggrad/sample"/>
+  <arg name="diagnostics_topic" default="/diagnostics"/>
+  <arg name="expected_sensors_file" default="$(find maggrad_protocol)/config/expected_sensors.yaml"/>
   <node pkg="maggrad_protocol" type="protocol_node" name="maggrad_protocol" output="screen">
-    <rosparam command="load" file="$(find maggrad_protocol)/config/expected_sensors.yaml"/>
+    <rosparam command="load" file="$(arg expected_sensors_file)"/>
     <param name="raw_frame_topic" value="$(arg raw_frame_topic)"/>
     <param name="sample_topic" value="$(arg sample_topic)"/>
+    <remap from="/diagnostics" to="$(arg diagnostics_topic)"/>
   </node>
 </launch>

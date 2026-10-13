@@ -64,4 +64,82 @@ reference, but are not installed or used by the C++ node. The C++ synthetic
 frame test covers complete and sparse rounds, duplicates, malformed records,
 CRC/length/version/type rejection, max payload, unknown TLVs, seq/tick wraps,
 and restart suspicion. There is no claim of sustained 500 Hz operation or
-hardware validation.
+hardware validation of sustained sensor sampling.
+
+## 联合调试与统计
+
+一次启动串口桥接、协议解码和独立统计节点：
+
+```bash
+cd /home/zhang/embedded_array_ws_dual
+source devel/setup.bash
+roslaunch maggrad_protocol joint_debug.launch
+# 其他板卡可覆盖稳定串口路径与波特率：
+roslaunch maggrad_protocol joint_debug.launch port:=/dev/ttyACM1 baud_rate:=115200
+```
+
+默认串口是本次识别到的
+`/dev/serial/by-id/usb-STMicroelectronics_STM32_Virtual_ComPort_315E39623233-if00`，
+当前对应 `/dev/ttyACM1`。其他 STM32 板卡的序列号不同，需要覆盖 `port`。
+请勿同时运行其他读取同一串口的程序。launch 不发送下行控制命令。
+
+`statistics_node` 每秒输出控制台摘要，同时在
+`/maggrad_statistics/statistics` 发布 `diagnostic_msgs/DiagnosticArray`，完整字段包括：
+
+- 周期 ROUND 频率、周期/累计帧数、消息 `complete` 比例和最后接收年龄。
+- AK/TMAG/ICM 周期/累计记录数，以及 AK `(bus, mask)`、TMAG `(ch_mask, addr)` 的出现次数。
+- DRDY/non-DRDY、AK ERR/DOR、TMAG overflow、固件 ERR 分类和 PHASE 缺失/无效统计。
+- 最近固件 STATS，按 `device_id` 展示 AK/TMAG/ICM 计数、skipped/errors 和 STATS 年龄。
+- 桥接/解码诊断及其年龄，包括 CRC、队列丢弃、序号缺口、重复和乱序等计数。
+
+```bash
+rostopic echo /maggrad_statistics/statistics
+# 也可单独启动统计节点（上游诊断需汇入 /diagnostics）：
+rosrun maggrad_protocol statistics_node _report_interval:=2.0 _stale_timeout:=3.0
+```
+
+联合 launch 将桥接的私有诊断和解码诊断汇入 `/diagnostics`，统计输出使用独立话题，避免反馈循环。
+没有样本或样本超时为 ERROR；本周期错误、上游诊断异常/缺失或未配置预期传感器为 WARN。
+固件累计 errors/skipped 仅在首次非零或增长时触发相应周期告警；历史计数继续保留。
+PHASE 缺失单独计数（协议允许省略），PHASE 无效值触发 WARN。
+ROUND Hz 是协议轮次速率，**不是传感器有效采样频率**。
+
+默认 expected 列表为空，`complete=true` 不能证明传感器正常。
+先按硬件填写预期 ID，再显式开启完整性统计语义：
+
+```bash
+roslaunch maggrad_protocol joint_debug.launch \
+  expected_sensors_file:=/absolute/path/to/expected_sensors.yaml \
+  expected_configured:=true
+```
+
+`expected_configured` 只是统计节点的声明，不会自动配置解码器，必须与所加载的 YAML 一致。
+可覆盖参数还包括 `raw_frame_topic`、`sample_topic`、`diagnostics_topic`、
+`frame_queue_size`、`publish_batch_size`、`statistics_queue_size`、`report_interval` 和 `stale_timeout`。
+
+### 2026-10-10 实物检查结果
+
+完整的中文实验现象、可能原因和下一步验证方法见
+[联合调试实验记录](docs/joint_debug_2026-10-10.md)。
+
+STM32 CDC 串口可读取 v2 ROUND，直接约 2 秒探测校验通过 17,175 帧，CRC 错误为 0。
+只有 PHASE 和 STATS，没有 AK/TMAG/ICM 记录；PHASE 三路均为 `0xFFFFFFFF`。
+固件 `device_id=3063479653`，三种传感器累计帧计数均为 0。
+随后有时限的联合 launch 测试得到约 8.3 kHz ROUND，固件累计 errors 为 5176，
+桥接 CRC 错误和 RX 队列丢弃均为 0，但解码器存在序号缺口。
+这是当时的观测，不是硬件健康或持续吞吐保证。
+
+结论：串口及帧协议已通，传感器采集尚未正常工作。建议下位机检查传感器供电、
+总线初始化、器件地址/片选、读取错误和 PHASE 输入。STATS 未提供错误原因，
+仅凭这些计数无法确定具体故障。序号缺口不能区分固件、传输与桥接/ROS 链路损失；
+高频短帧下应继续检查固件空轮次发送和 ROS 发布/订阅缓冲，不宜直接认定串口丢包。
+
+新增统计测试与既有测试可运行：
+
+```bash
+catkin build serial_frame_bridge maggrad_protocol
+# 在各包的构建目录中运行 CTest（兼容本机旧版 CTest）：
+cd build/maggrad_protocol && ctest --output-on-failure
+# 另一个终端，从工作区根目录：
+cd build/serial_frame_bridge && ctest --output-on-failure
+```

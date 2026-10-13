@@ -33,6 +33,18 @@ roslaunch serial_frame_bridge serial_frame_bridge.launch port:=/dev/maggrad
 roslaunch maggrad_protocol protocol.launch
 ```
 
+联合调试（串口桥接 + 协议解码 + 统计输出）：
+
+```bash
+source devel/setup.bash
+roslaunch maggrad_protocol joint_debug.launch
+rostopic echo /maggrad_statistics/statistics
+```
+
+默认使用本机 STM32 的稳定 `by-id` 路径；其他板卡用 `port:=...` 覆盖。
+统计与本次实物检查结果见 [联合调试说明](src/maggrad_protocol/README.md#联合调试与统计)。
+ROUND 频率不等同于有效传感器采样频率，默认空 expected 配置也不证明硬件完整。
+
 完整参数和消息字段分别见 [串口桥接包](src/serial_frame_bridge/README.md) 与 [协议抽象包](src/maggrad_protocol/README.md)。使用 `complete` 前应按实物配置 `src/maggrad_protocol/config/expected_sensors.yaml` 中的传感器 ID；留空仅表示没有预期设备。固件尚未定义下行命令协议，`tx_bytes` 只提供原始字节发送能力，不能视为已经实现设备命令。
 
 无需硬件的验证：`catkin build`、`catkin run_tests` 和 `catkin_test_results`。伪终端测试不代替 CDC 实物的吞吐与热拔插测试。

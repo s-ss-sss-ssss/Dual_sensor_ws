@@ -16,7 +16,11 @@ add_executable(protocol_node src/protocol_node.cpp)
 add_dependencies(protocol_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(protocol_node maggrad_decoder ${catkin_LIBRARIES})
 
-install(TARGETS maggrad_decoder protocol_node
+add_executable(statistics_node src/statistics_node.cpp)
+add_dependencies(statistics_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(statistics_node ${catkin_LIBRARIES})
+
+install(TARGETS maggrad_decoder protocol_node statistics_node
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
@@ -28,4 +32,10 @@ if(CATKIN_ENABLE_TESTING)
   target_compile_options(test_maggrad_decoder PRIVATE -UNDEBUG)
   target_link_libraries(test_maggrad_decoder maggrad_decoder)
   add_test(NAME test_maggrad_decoder COMMAND test_maggrad_decoder)
+
+  add_executable(test_maggrad_statistics test/test_statistics.cpp)
+  add_dependencies(test_maggrad_statistics ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+  target_compile_options(test_maggrad_statistics PRIVATE -UNDEBUG)
+  target_link_libraries(test_maggrad_statistics ${catkin_LIBRARIES})
+  add_test(NAME test_maggrad_statistics COMMAND test_maggrad_statistics)
 endif()
