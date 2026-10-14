@@ -61,7 +61,7 @@ int main() {
   assert(d.decode(frame(1, 2, duplicates), r));
   assert(r.ak.size() == 1 && r.ak[0].offset_us == 77);
   assert(d.counters().duplicate_sensors == 2 && d.counters().seq_holes == 1);
-  assert(r.unwrapped_tick_ms == 0x100000002ull);
+  assert(r.unwrapped_tick_us == 0x100000002ull);
   assert(d.decode(frame(1, 2), r) && d.counters().seq_repeats == 1);
   assert(d.decode(frame(0, 1), r) && d.counters().seq_out_of_order == 1);
   assert(d.counters().tick_out_of_order == 1 && d.counters().suspected_restarts == 1);
@@ -74,7 +74,7 @@ int main() {
   assert(!d.decode(bad, r) && d.counters().record_errors == 1);
   assert(!d.decode(frame(2, 3, Bytes{1, 15}), r));
   assert(!d.decode(frame(2, 3, Bytes{1, 15, 0, 0}), r));
-  assert(d.decode(frame(2, 3), r) && r.unwrapped_tick_ms == 0x100000003ull);
+  assert(d.decode(frame(2, 3), r) && r.unwrapped_tick_us == 0x100000003ull);
   assert(d.counters().seq_holes == 1);
   Bytes max_payload;
   append(max_payload, tlv(0x55, Bytes(4077, 0)));
@@ -103,5 +103,36 @@ int main() {
       assert(stats_decoder.decode(frame(3, 3), stats_round));
       assert(!stats_round.has_stats && stats_round.stats.device_id == 0);
     }
-    std::cout << "decoder tests passed\n";
+  {
+    Decoder timing;
+    Round timed;
+    assert(timing.decode(frame(1, 1234567), timed));
+    assert(timed.tick_us == 1234567 && timed.unwrapped_tick_us == 1234567);
+    assert(timing.decode(frame(2, 1234890), timed));
+    assert(timed.unwrapped_tick_us == 1234890);
+    assert(timing.decode(frame(3, 1234890), timed));
+    assert(timed.unwrapped_tick_us == 1234890 && timing.counters().tick_out_of_order == 0);
+    assert(timing.decode(frame(4, 1234889), timed));
+    assert(timed.tick_us == 1234889 && timed.unwrapped_tick_us == 1234890);
+    assert(timing.counters().tick_out_of_order == 1);
+    timing.reset_tracking();
+    assert(timing.decode(frame(1, 10), timed));
+    assert(timed.unwrapped_tick_us == 10);
+    assert(timing.decode(frame(2, 0x80000009u), timed));
+    assert(timed.unwrapped_tick_us == 0x80000009ull);
+    assert(timing.decode(frame(3, 9), timed));
+    assert(timed.unwrapped_tick_us == 0x80000009ull);
+    assert(timing.counters().tick_out_of_order == 2);
+    timing.reset_tracking();
+    assert(timing.decode(frame(1, 0xfffffff0u, tlv(1, ak)), timed));
+    assert(!timed.has_phase);
+    assert(timed.unwrapped_tick_us + timed.ak[0].offset_us == 0x10000003dull);
+    auto invalid = frame(2, 0x10);
+    invalid.back() ^= 1;
+    assert(!timing.decode(invalid, timed));
+    assert(timing.decode(frame(2, 0x10), timed));
+    assert(timed.tick_us == 0x10 && timed.unwrapped_tick_us == 0x100000010ull);
+    assert(timing.counters().seq_holes == 0);
+  }
+  std::cout << "decoder tests passed\n";
 }

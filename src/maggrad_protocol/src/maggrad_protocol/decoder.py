@@ -32,8 +32,8 @@ class Counters:
 @dataclass
 class Round:
     round_seq: int
-    device_tick_ms: int
-    device_tick_unwrapped_ms: int = 0
+    device_tick_us: int
+    device_tick_unwrapped_us: int = 0
     ak: list = field(default_factory=list)
     tmag: list = field(default_factory=list)
     icm: Optional[tuple] = None
@@ -173,7 +173,7 @@ class Decoder:
                 self._last_tick = tick
             else:
                 self.counters.tick_out_of_order += 1
-        round_data.device_tick_unwrapped_ms = self._unwrapped_tick
+        round_data.device_tick_unwrapped_us = self._unwrapped_tick
         self.counters.duplicate_sensors += duplicates
         self.counters.frames += 1
         return round_data

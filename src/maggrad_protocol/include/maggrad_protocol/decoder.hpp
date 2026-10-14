@@ -37,8 +37,8 @@ struct Stats {
     uint32_t device_id = 0;
 };
 struct Round {
-  uint32_t seq = 0, tick_ms = 0;
-  uint64_t unwrapped_tick_ms = 0;
+  uint32_t seq = 0, tick_us = 0;
+  uint64_t unwrapped_tick_us = 0;
   bool has_phase = false, has_icm = false, has_stats = false, complete = false;
   std::array<uint32_t, 3> phase_age_us{{0xffffffffu, 0xffffffffu, 0xffffffffu}};
   std::vector<Ak> ak;

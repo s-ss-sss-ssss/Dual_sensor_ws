@@ -15,8 +15,8 @@ def to_message(frame, round_data):
     msg = RoundSample()
     msg.header = frame.header  # Bridge receipt time; not device time.
     msg.round_seq = round_data.round_seq
-    msg.device_tick_ms = round_data.device_tick_ms
-    msg.device_tick_unwrapped_ms = round_data.device_tick_unwrapped_ms
+    msg.device_tick_us = round_data.device_tick_us
+    msg.device_tick_unwrapped_us = round_data.device_tick_unwrapped_us
     if round_data.phase is not None:
         msg.has_phase = True
         msg.phase_age_us = round_data.phase

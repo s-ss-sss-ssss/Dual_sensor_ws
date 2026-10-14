@@ -4,8 +4,8 @@ bool identity_verified
 bool has_device_id
 uint32 firmware_device_id
 uint32 round_seq
-uint32 device_tick_ms
-uint64 device_tick_unwrapped_ms
+uint32 device_tick_us # Unchanged round-start TIM2 counter from RoundSample.
+uint64 device_tick_unwrapped_us # Unchanged host-expanded microsecond time.
 bool has_phase
 uint32[3] phase_age_us
 bool[3] phase_valid

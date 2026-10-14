@@ -38,6 +38,31 @@ when present, each `0xFFFFFFFF` age is likewise invalid. `header` is copied
 from the bridge (host receipt), **not** calculated from device time. Raw
 signed counts and unsigned microsecond read-completion offsets are unchanged.
 
+## Device time in microseconds
+
+Only firmware reporting a 32-bit round-start TIM2 `tick_us` is supported.
+`RoundSample.device_tick_us` preserves that counter unchanged;
+`device_tick_unwrapped_us` expands it into a 64-bit microsecond timeline.
+No multiplication or division by 1000 is applied. The counter wraps every
+approximately 71.58 minutes. Tracking requires a real forward interval below
+`2^31` microseconds (approximately 35.79 minutes); longer gaps can be ambiguous
+or lose whole wraps. Repeated ticks retain the time; backward/ambiguous ticks
+retain the previous expanded time and increment `tick_out_of_order`.
+
+For an in-order round with valid tracking, a sensor's device-domain read
+completion time is `device_tick_unwrapped_us + read_done_offset_us`, including
+when the read crosses the raw counter wrap. PHASE is not required. This is
+read completion, not internal sensor conversion time; it does not synchronize
+boards or map device time to ROS time. Late rounds retain the previous expanded
+time, so the formula cannot recover their original completion timestamps.
+
+Protocol version 2, the 14-byte header, the 4-byte field at offset 8, lengths
+and CRC rules are unchanged. Old millisecond firmware cannot be distinguished
+by version and is unsupported. The previous `device_tick_ms` and
+`device_tick_unwrapped_ms` ROS fields are renamed: rebuild and restart all
+publishers/subscribers, including `sensor_array_bringup`, because message MD5s
+change. Old bags and external consumers require separate adaptation.
+
 ## Sensor ID interface
 
 `AkSample` and `TmagSample` each append a `uint8 sensor_id`; no `valid` field

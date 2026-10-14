@@ -56,7 +56,7 @@ bool Decoder::decode(const uint8_t* data, size_t size, Round& out, std::string* 
 
   Round round;
   round.seq = u32(data + 4);
-  round.tick_ms = u32(data + 8);
+  round.tick_us = u32(data + 8);
   uint64_t duplicates = 0;
   const size_t end = 14 + payload_len;
   for (size_t pos = 14; pos < end;) {
@@ -139,16 +139,16 @@ bool Decoder::decode(const uint8_t* data, size_t size, Round& out, std::string* 
     else if (delta < 0x80000000u) { counters_.seq_holes += delta - 1; last_seq_ = round.seq; }
     else {
       ++counters_.seq_out_of_order;
-      if (round.seq < last_seq_ && round.tick_ms < last_tick_) ++counters_.suspected_restarts;
+      if (round.seq < last_seq_ && round.tick_us < last_tick_) ++counters_.suspected_restarts;
     }
   }
-  if (!have_tick_) { have_tick_ = true; last_tick_ = round.tick_ms; unwrapped_tick_ = round.tick_ms; }
+  if (!have_tick_) { have_tick_ = true; last_tick_ = round.tick_us; unwrapped_tick_ = round.tick_us; }
   else {
-    const uint32_t delta = round.tick_ms - last_tick_;
-    if (delta < 0x80000000u) { unwrapped_tick_ += delta; last_tick_ = round.tick_ms; }
+    const uint32_t delta = round.tick_us - last_tick_;
+    if (delta < 0x80000000u) { unwrapped_tick_ += delta; last_tick_ = round.tick_us; }
     else ++counters_.tick_out_of_order;
   }
-  round.unwrapped_tick_ms = unwrapped_tick_;
+  round.unwrapped_tick_us = unwrapped_tick_;
   counters_.duplicate_sensors += duplicates;
   ++counters_.frames;
   out = std::move(round);

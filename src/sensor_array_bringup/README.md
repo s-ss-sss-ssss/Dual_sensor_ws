@@ -129,6 +129,22 @@ AK 与 TMAG 可使用相同 `sensor_id`，不会互相覆盖。不改变标定�
 当前协议逻辑 ID 都是 `0xFF`，因此在映射补充前磁场数组为空。
 `/<device_id>/diagnostics` 报告身份状态与跳过情况。
 
+### 微秒时间接口
+
+原始 `RoundSample` 与校正 `SensorCorrectionRound` 均使用 `uint32 device_tick_us`
+和 `uint64 device_tick_unwrapped_us`。校正节点原样转发轮首时间、读取偏移、phase
+及主机接收 header，不进行毫秒换算。仅支持上报 TIM2 微秒计数的新固件；launch
+和 YAML 无需增加时间单位参数。串口桥接仍只透传原始帧。
+
+正常顺序且时间跟踪有效时，读取完成时间（设备时间域，微秒）为
+`device_tick_unwrapped_us + read_done_offset_us`，无 phase 时也适用。
+这不是传感器内部转换时刻，也不提供双板同步。原始计数约 71.58 分钟回绕；
+可可靠跟踪的真实前向间隔须小于约 35.79 分钟。迟到帧沿用上一展开时间，
+设备重启或长时间断流后需要显式重置解码跟踪或重启协议节点。
+
+旧 `device_tick_ms`、`device_tick_unwrapped_ms` 字段已改名，两个轮次消息的 MD5
+随之变化，须重新编译并一起重启相关发布者和订阅者；旧 rosbag 和外部消费者需单独适配。
+
 ### 迁移
 
 - YAML 和外部 launch 的 `sensor_correction_file` 改为 `sensor_correction_dir`，值改为标定根目录，

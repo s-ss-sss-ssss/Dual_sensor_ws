@@ -83,7 +83,7 @@ class RoundParser:
                 self.crc_errors += 1
                 del self.buffer[0]
                 continue
-            seq, tick_ms = struct.unpack_from("<II", self.buffer, 4)
+            seq, tick_us = struct.unpack_from("<II", self.buffer, 4)
             payload = bytes(self.buffer[14:total_len - 2])
             records = []
             pos = 0
@@ -95,7 +95,7 @@ class RoundParser:
                 records.append((kind, payload[pos:pos + length]))
                 pos += length
             if pos == len(payload):
-                rounds.append((seq, tick_ms, records))
+                rounds.append((seq, tick_us, records))
             else:
                 self.dropped += total_len
             del self.buffer[:total_len]
@@ -109,7 +109,7 @@ def parse_binary_frames(raw):
 
 
 def decode_frame(frame):
-    frame_type, seq, tick_ms, payload = frame
+    frame_type, seq, tick_us, payload = frame
     if frame_type in (0x01, 0x02, 0x03):
         if len(payload) < 4:
             return "INVALID", "INVALID", "short sensor record"
@@ -117,7 +117,7 @@ def decode_frame(frame):
         payload = payload[4:]
     else:
         offset_us = None
-    when = f"round={seq} t={tick_ms} done_us={offset_us}" if offset_us is not None else f"round={seq} t={tick_ms}"
+    when = f"round={seq} tick_us={tick_us} done_us={offset_us}" if offset_us is not None else f"round={seq} tick_us={tick_us}"
     if frame_type == 0x01 and len(payload) == 11:
         bus, mask, hx, hy, hz, status, err, dor = struct.unpack("<BBhhhBBB", payload)
         key = f"Bus{bus}_Mask{mask:02X}"
@@ -165,9 +165,9 @@ def analyze_binary(raw, elapsed):
     last_seq = None
     samples = []
 
-    for seq, tick_ms, records in frames:
+    for seq, tick_us, records in frames:
         for kind, payload in records:
-            name, key, text = decode_frame((kind, seq, tick_ms, payload))
+            name, key, text = decode_frame((kind, seq, tick_us, payload))
             counts[name] = counts.get(name, 0) + 1
             sensors.setdefault(name, {})
             sensors[name][key] = sensors[name].get(key, 0) + 1

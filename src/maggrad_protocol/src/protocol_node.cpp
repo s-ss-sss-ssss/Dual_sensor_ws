@@ -71,8 +71,8 @@ maggrad_protocol::RoundSample message(const serial_frame_bridge::RawFrame& frame
   maggrad_protocol::RoundSample msg;
   msg.header = frame.header;
   msg.round_seq = r.seq;
-  msg.device_tick_ms = r.tick_ms;
-  msg.device_tick_unwrapped_ms = r.unwrapped_tick_ms;
+  msg.device_tick_us = r.tick_us;
+  msg.device_tick_unwrapped_us = r.unwrapped_tick_us;
   msg.has_phase = r.has_phase;
   for (int i = 0; i < 3; ++i) {
     msg.phase_age_us[i] = r.phase_age_us[i];

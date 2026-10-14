@@ -6,10 +6,12 @@
 
 using serial_frame_bridge::FrameParser;
 namespace {
-std::vector<uint8_t> frame(const std::vector<uint8_t>& payload) {
+std::vector<uint8_t> frame(const std::vector<uint8_t>& payload, uint32_t tick_us = 2) {
   std::vector<uint8_t> bytes = {0xa5, 0x5a, 2, 0x10, 1, 0, 0, 0, 2, 0, 0, 0,
                                 static_cast<uint8_t>(payload.size() & 255),
                                 static_cast<uint8_t>(payload.size() >> 8)};
+  for (unsigned int i = 0; i < 4; ++i)
+    bytes[8 + i] = static_cast<uint8_t>(tick_us >> (8 * i));
   bytes.insert(bytes.end(), payload.begin(), payload.end());
   uint16_t crc = 0xffff;
   for (std::size_t i = 2; i < bytes.size(); ++i) {
@@ -39,6 +41,20 @@ TEST(FrameParser, SplitAtEveryByteAndStickyFrames) {
     EXPECT_EQ(a, found[0]);
     EXPECT_EQ(b, found[1]);
   }
+}
+
+TEST(FrameParser, MicrosecondTicksPassThroughAcrossWrap) {
+  const auto before = frame({}, 0xfffffff0u);
+  const auto after = frame({}, 0x10u);
+  FrameParser parser;
+  std::vector<FrameParser::Frame> found;
+  auto collect = [&](FrameParser::Frame f) { found.push_back(std::move(f)); };
+  for (const auto& bytes : {before, after})
+    for (const auto byte : bytes) parser.feed(&byte, 1, collect);
+  ASSERT_EQ(2u, found.size());
+  EXPECT_EQ(before, found[0]);
+  EXPECT_EQ(after, found[1]);
+  EXPECT_EQ(0u, parser.stats().crc_errors);
 }
 
 TEST(FrameParser, NoiseInvalidHeadersCrcAndNestedSync) {

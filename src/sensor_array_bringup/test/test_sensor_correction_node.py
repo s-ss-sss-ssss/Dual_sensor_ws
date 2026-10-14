@@ -73,6 +73,32 @@ class NodeTests(unittest.TestCase):
         self.assertEqual(result.skipped_missing_sensor_correction, 0)
         result.serialize(io.BytesIO())
 
+    def test_microsecond_timing_is_preserved_without_phase(self):
+        node = self.node(False)
+        msg = RoundSample(round_seq=42, device_tick_us=0xFFFFFFF0,
+                          device_tick_unwrapped_us=0x1FFFFFFF0,
+                          ak=[AkSample(sensor_id=1, read_done_offset_us=123)],
+                          tmag=[TmagSample(sensor_id=1, read_done_offset_us=456)])
+        msg.header.stamp.secs = 123
+        msg.header.stamp.nsecs = 456789
+        msg.header.frame_id = 'board'
+        msg.phase_age_us = [0xFFFFFFFF] * 3
+        node.on_round(msg)
+        result = node.publisher.publish.call_args.args[0]
+        self.assertEqual(result.header, msg.header)
+        self.assertEqual(result.round_seq, 42)
+        self.assertEqual(result.device_tick_us, 0xFFFFFFF0)
+        self.assertEqual(result.device_tick_unwrapped_us, 0x1FFFFFFF0)
+        self.assertFalse(result.has_phase)
+        self.assertEqual(list(result.phase_age_us), list(msg.phase_age_us))
+        self.assertEqual(list(result.phase_valid), list(msg.phase_valid))
+        self.assertEqual(result.ak[0].read_done_offset_us, 123)
+        self.assertEqual(result.tmag[0].read_done_offset_us, 456)
+        self.assertEqual(result.device_tick_unwrapped_us + result.ak[0].read_done_offset_us,
+                         0x20000006B)
+        self.assertEqual(msg.device_tick_us, 0xFFFFFFF0)
+        result.serialize(io.BytesIO())
+
     @patch('sensor_array_bringup.sensor_correction_node.rospy.logwarn_throttle')
     def test_disabled_gate_empty_round(self, _warning):
         node = self.node(False)

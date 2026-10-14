@@ -37,7 +37,7 @@ class SensorCorrectionNode:
                 rospy.logwarn_throttle(5.0, 'Sensor correction waiting for STATS device ID')
             return
         result = SensorCorrectionRound()
-        for field in ('header', 'round_seq', 'device_tick_ms', 'device_tick_unwrapped_ms',
+        for field in ('header', 'round_seq', 'device_tick_us', 'device_tick_unwrapped_us',
                       'has_phase', 'phase_age_us', 'phase_valid', 'has_icm', 'icm',
                       'errors', 'has_stats', 'stats', 'complete', 'missing_sensor_mask'):
             setattr(result, field, getattr(msg, field))
