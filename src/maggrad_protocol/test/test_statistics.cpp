@@ -14,6 +14,11 @@ std::string value(const Status& status, const std::string& key) {
 }
 
 int main() {
+  assert(isBridgeDiagnostic("serial_frame_bridge"));
+  assert(isBridgeDiagnostic("/board_a/serial_frame_bridge: serial bridge"));
+  assert(isBridgeDiagnostic("/board_b/renamed_bridge: serial bridge"));
+  assert(!isBridgeDiagnostic("/board_a/maggrad_protocol: protocol"));
+  assert(!isBridgeDiagnostic("serial bridge"));
   const auto start = Clock::time_point{};
   const auto later = start + std::chrono::seconds(2);
   Statistics stats;

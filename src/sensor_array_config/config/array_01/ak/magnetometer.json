@@ -1,0 +1,14 @@
+{
+  "name": "AK09973D",
+  "manufacturer": "AKM",
+  "bit_width": 16,
+  "range_gs": 360.4,
+  "adu_to_gs": 0.01099853515625,
+  "gs_to_tesla": 0.0001,
+  "n_sensors": 12,
+  "n_groups": 4,
+  "sensors_per_group": 3,
+  "frame_id": "maggrad_ak_array",
+  "calibration_status": "placeholder",
+  "notes": "AK09973D sensor array hardware parameters. d_list is in meters and relative to the AK array center at AD coordinate (123 mm, 0 mm, 0 mm). z uses PCB mid-plane as zero and approximates the sensing center as half of the 0.55 mm package height from the mounted surface."
+}

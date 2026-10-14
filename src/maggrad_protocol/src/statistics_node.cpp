@@ -29,6 +29,13 @@ void field(Status& status, const std::string& key, const T& value) {
   status.values.push_back(entry);
 }
 
+bool isBridgeDiagnostic(const std::string& name) {
+  const std::string suffix = ": serial bridge";
+  return name == "serial_frame_bridge" ||
+         (name.size() >= suffix.size() &&
+          name.compare(name.size() - suffix.size(), suffix.size(), suffix) == 0);
+}
+
 struct Firmware {
   maggrad_protocol::StatsRecord stats;
   Clock::time_point received;
@@ -164,8 +171,8 @@ struct Upstream {
 class StatisticsNode {
  public:
   StatisticsNode() : private_("~"), last_report_(Clock::now()) {
-    const auto sample_topic = parameter<std::string>("sample_topic", "/maggrad/sample");
-    const auto diagnostics_topic = parameter<std::string>("diagnostics_topic", "/diagnostics");
+    const auto sample_topic = parameter<std::string>("sample_topic", "maggrad/sample");
+    const auto diagnostics_topic = parameter<std::string>("diagnostics_topic", "diagnostics");
     const auto interval = parameter<double>("report_interval", 1.0);
     stale_timeout_ = parameter<double>("stale_timeout", 2.0);
     const auto queue_size = parameter<int>("queue_size", 512);
@@ -202,7 +209,7 @@ class StatisticsNode {
   void onDiagnostics(const diagnostic_msgs::DiagnosticArray::ConstPtr& report) {
     for (const auto& status : report->status) {
       if (status.name == name_) continue;
-      const bool bridge = status.name == "serial_frame_bridge";
+      const bool bridge = isBridgeDiagnostic(status.name);
       const bool protocol = status.name.size() >= 10 &&
                             status.name.compare(status.name.size() - 10, 10, ": protocol") == 0;
       if (!bridge && !protocol) continue;
@@ -234,8 +241,8 @@ class StatisticsNode {
     field(status, "upstream.sources", upstream_.size());
     bool have_bridge = false, have_protocol = false;
     for (const auto& entry : upstream_) {
-      have_bridge = have_bridge || entry.first == "serial_frame_bridge";
-      have_protocol = have_protocol || entry.first != "serial_frame_bridge";
+      have_bridge = have_bridge || isBridgeDiagnostic(entry.first);
+      have_protocol = have_protocol || !isBridgeDiagnostic(entry.first);
       const auto prefix = "upstream." + entry.first + ".";
       const auto age = seconds(now, entry.second.received);
       field(status, prefix + "age_s", age);

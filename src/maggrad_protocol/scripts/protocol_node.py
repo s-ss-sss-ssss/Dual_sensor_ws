@@ -24,8 +24,9 @@ def to_message(frame, round_data):
     else:
         msg.phase_age_us = [INVALID_PHASE] * 3
         msg.phase_valid = [False] * 3
-    msg.ak = [AkSample(*values) for values in round_data.ak]
-    msg.tmag = [TmagSample(*values) for values in round_data.tmag]
+    # TODO: Confirm address-pair -> logical ID mappings; match the C++ placeholder.
+    msg.ak = [AkSample(*values, 0xFF) for values in round_data.ak]
+    msg.tmag = [TmagSample(*values, 0xFF) for values in round_data.tmag]
     if round_data.icm is not None:
         msg.has_icm = True
         msg.icm = IcmSample(*round_data.icm)

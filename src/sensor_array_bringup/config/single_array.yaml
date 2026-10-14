@@ -1,0 +1,23 @@
+# One YAML per board. No launch generation or configuration snapshots.
+# WARNING: firmware_device_id: 0 is an explicit placeholder: replace with the
+# actual firmware uint32 ID before hardware use; device_id is only a logical name.
+# WARNING: the device's ak/affine.json and tmag/affine.json are placeholders, not measured.
+# See ../../sensor_array_config/config/README.md for sensor_correction provenance.
+# This is a root directory reference, not a sensor_array_config Python dependency.
+# Usage: rosrun sensor_array_bringup bringup --config <this-file> --check
+# Or: roslaunch sensor_array_bringup array.launch config:=<absolute-yaml-path>
+device_id: array_01
+firmware_device_id: 0
+check_device_id: false
+namespace: /sensor1
+port: /dev/serial/by-id/usb-STMicroelectronics_STM32_Virtual_ComPort_315E39623233-if00
+baud_rate: 115200
+sensor_correction_dir: ../../sensor_array_config/config
+raw_scale: 1.0
+# Paths are relative to this YAML, or absolute; $(find pkg) is supported lazily.
+# Topics are absolute /<device_id>/...; namespace only places ROS nodes.
+# Exact transmitted byte pairs; no confirmed address-to-chip-ID mapping.
+# Empty expectations make protocol completeness trivial, not hardware proof.
+expected_ak: []
+expected_tmag: []
+expect_icm: false

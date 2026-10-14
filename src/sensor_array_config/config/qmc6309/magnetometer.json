@@ -1,0 +1,14 @@
+{
+  "name": "QMC6309",
+  "manufacturer": "QST",
+  "bit_width": 16,
+  "range_gs": 32.0,
+  "adu_to_gs": 0.0009765625,
+  "gs_to_tesla": 0.0001,
+  "n_sensors": 12,
+  "n_groups": 4,
+  "sensors_per_group": 3,
+  "frame_id": "stm32h7_qmc_array",
+  "calibration_status": "calibrated",
+  "notes": ""
+}

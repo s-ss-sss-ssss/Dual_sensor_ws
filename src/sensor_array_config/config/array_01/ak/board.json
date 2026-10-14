@@ -1,0 +1,12 @@
+{
+  "name": "ak09973d",
+  "firmware_protocol": "maggrad_binary_v1",
+  "calibration_status": "placeholder",
+  "notes": "",
+  "files": {
+    "magnetometer": "magnetometer.json",
+    "array": "array.json",
+    "affine": "affine.json",
+    "imu": "imu.json"
+  }
+}

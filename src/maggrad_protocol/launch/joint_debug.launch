@@ -2,9 +2,11 @@
   <!-- Override port for other boards; by-id survives ttyACM numbering changes. -->
   <arg name="port" default="/dev/serial/by-id/usb-STMicroelectronics_STM32_Virtual_ComPort_315E39623233-if00"/>
   <arg name="baud_rate" default="115200"/>
-  <arg name="raw_frame_topic" default="/serial_frame_bridge/raw_frames"/>
-  <arg name="sample_topic" default="/maggrad/sample"/>
-  <arg name="diagnostics_topic" default="/diagnostics"/>
+  <arg name="raw_frame_topic" default="serial_frame_bridge/raw_frames"/>
+  <arg name="sample_topic" default="maggrad/sample"/>
+  <arg name="diagnostics_topic" default="diagnostics"/>
+  <arg name="tx_bytes_topic" default="serial_frame_bridge/tx_bytes"/>
+  <arg name="statistics_topic" default="maggrad_statistics/statistics"/>
   <arg name="frame_queue_size" default="512"/>
   <arg name="publish_batch_size" default="512"/>
   <arg name="expected_sensors_file" default="$(find maggrad_protocol)/config/expected_sensors.yaml"/>
@@ -17,6 +19,7 @@
   <include file="$(find serial_frame_bridge)/launch/serial_frame_bridge.launch">
     <arg name="port" value="$(arg port)"/>
     <arg name="baud_rate" value="$(arg baud_rate)"/>
+    <arg name="tx_bytes_topic" value="$(arg tx_bytes_topic)"/>
     <arg name="raw_frame_topic" value="$(arg raw_frame_topic)"/>
     <arg name="diagnostics_topic" value="$(arg diagnostics_topic)"/>
     <arg name="frame_queue_size" value="$(arg frame_queue_size)"/>
@@ -29,6 +32,7 @@
     <arg name="expected_sensors_file" value="$(arg expected_sensors_file)"/>
   </include>
   <node pkg="maggrad_protocol" type="statistics_node" name="maggrad_statistics" output="screen">
+    <remap from="~statistics" to="$(arg statistics_topic)"/>
     <param name="sample_topic" value="$(arg sample_topic)"/>
     <param name="diagnostics_topic" value="$(arg diagnostics_topic)"/>
     <param name="report_interval" value="$(arg report_interval)"/>

@@ -6,4 +6,33 @@ ROS Noetic raw v2 serial bridge. The non-ROS C++14 core opens a serial port (def
 
 **Firmware downlink is not yet implemented.** Sending `~tx_bytes` only writes bytes to the serial port; the present firmware has no command parser and will not respond to them.
 
-Launch with `roslaunch serial_frame_bridge serial_frame_bridge.launch port:=/dev/maggrad`. Private parameters: `~port`, `~baud_rate`, `~frame_queue_size` (default 512, minimum 1), `~publish_batch_size` (default 512, minimum 1). The node advertises a publisher queue depth of 5. Diagnostics include parser CRC/header errors and resynchronization bytes, serial read/write errors and reconnect attempts, and dropped RX/TX counts. The launch also exposes `raw_frame_topic`, `diagnostics_topic`, `frame_queue_size`, and `publish_batch_size`; their defaults preserve the existing topics and queue settings. `maggrad_protocol/joint_debug.launch` starts this bridge with the decoder and statistics node, remapping bridge diagnostics to `/diagnostics` for aggregation. No device is needed to run parser tests; Linux PTY tests exercise live asynchronous I/O.
+Launch with `roslaunch serial_frame_bridge serial_frame_bridge.launch port:=/dev/maggrad`. Private parameters: `~port`, `~baud_rate`, `~frame_queue_size` (default 512, minimum 1), `~publish_batch_size` (default 512, minimum 1). The node advertises a publisher queue depth of 5. Diagnostics include parser CRC/header errors and resynchronization bytes, serial read/write errors and reconnect attempts, and dropped RX/TX counts. The launch also exposes `raw_frame_topic`, `diagnostics_topic`, `tx_bytes_topic`, `frame_queue_size`, and `publish_batch_size`; root-level defaults preserve the existing topics and queue settings. `maggrad_protocol/joint_debug.launch` starts this bridge with the decoder and statistics node, remapping bridge diagnostics to `/diagnostics` for aggregation. No device is needed to run parser tests; Linux PTY tests exercise live asynchronous I/O.
+
+## Multiple instances and topics
+
+The launch inherits its namespace from an enclosing `<group ns="...">` or
+`ROS_NAMESPACE=board_a`. Each device needs a distinct namespace and serial port.
+Topic arguments are explicit remaps of the node's private interfaces:
+
+| Argument | Direction / type | Default (relative to instance namespace) |
+| --- | --- | --- |
+| `raw_frame_topic` | Output / `serial_frame_bridge/RawFrame` | `serial_frame_bridge/raw_frames` |
+| `tx_bytes_topic` | Input / `std_msgs/UInt8MultiArray` | `serial_frame_bridge/tx_bytes` |
+| `diagnostics_topic` | Output / `diagnostic_msgs/DiagnosticArray` | `serial_frame_bridge/diagnostics` |
+
+Relative defaults isolate instances without changing single-device root topic
+names. Absolute overrides intentionally bypass the namespace. TX configuration
+is a launch argument/remap, not a new private ROS parameter; direct `rosrun`
+users can remap `~tx_bytes` as before. Diagnostics now use the full node name
+plus `: serial bridge` (e.g. `/board_a/serial_frame_bridge: serial bridge`),
+not the fixed `serial_frame_bridge` name, so merged diagnostics do not collide.
+The updated MagGrad statistics node recognizes both formats.
+
+```bash
+ROS_NAMESPACE=board_a roslaunch serial_frame_bridge serial_frame_bridge.launch \
+  port:=/dev/ttyACM0 tx_bytes_topic:=commands
+# Input: /board_a/commands; output: /board_a/serial_frame_bridge/raw_frames
+```
+
+Launch still sends no control commands automatically; the firmware downlink
+limitation above is unchanged.

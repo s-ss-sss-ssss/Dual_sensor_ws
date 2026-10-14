@@ -33,6 +33,12 @@ if(CATKIN_ENABLE_TESTING)
   target_link_libraries(test_maggrad_decoder maggrad_decoder)
   add_test(NAME test_maggrad_decoder COMMAND test_maggrad_decoder)
 
+  add_executable(test_protocol_message test/test_protocol_message.cpp)
+  add_dependencies(test_protocol_message ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+  target_compile_options(test_protocol_message PRIVATE -UNDEBUG)
+  target_link_libraries(test_protocol_message maggrad_decoder ${catkin_LIBRARIES})
+  add_test(NAME test_protocol_message COMMAND test_protocol_message)
+
   add_executable(test_maggrad_statistics test/test_statistics.cpp)
   add_dependencies(test_maggrad_statistics ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
   target_compile_options(test_maggrad_statistics PRIVATE -UNDEBUG)

@@ -57,6 +57,16 @@ void field(diagnostic_msgs::DiagnosticStatus& status, const char* name, T value)
   status.values.push_back(kv);
 }
 
+uint8_t mapAkSensorId(uint8_t /*bus*/, uint8_t /*mask*/) {
+  // TODO: Confirm AK bus+mask -> logical ID mapping; do not infer addresses.
+  return 0xFF;
+}
+
+uint8_t mapTmagSensorId(uint8_t /*ch_mask*/, uint8_t /*addr*/) {
+  // TODO: Confirm TMAG ch_mask+addr -> logical ID mapping; do not infer addresses.
+  return 0xFF;
+}
+
 maggrad_protocol::RoundSample message(const serial_frame_bridge::RawFrame& frame, const Round& r) {
   maggrad_protocol::RoundSample msg;
   msg.header = frame.header;
@@ -71,6 +81,7 @@ maggrad_protocol::RoundSample message(const serial_frame_bridge::RawFrame& frame
   for (const auto& a : r.ak) {
     maggrad_protocol::AkSample m;
     m.read_done_offset_us = a.offset_us; m.bus = a.bus; m.mask = a.mask;
+    m.sensor_id = mapAkSensorId(a.bus, a.mask);
     m.hx = a.hx; m.hy = a.hy; m.hz = a.hz;
     m.drdy = a.drdy; m.err = a.err; m.dor = a.dor;
     msg.ak.push_back(m);
@@ -78,6 +89,7 @@ maggrad_protocol::RoundSample message(const serial_frame_bridge::RawFrame& frame
   for (const auto& t : r.tmag) {
     maggrad_protocol::TmagSample m;
     m.read_done_offset_us = t.offset_us; m.ch_mask = t.ch_mask; m.addr = t.addr;
+    m.sensor_id = mapTmagSensorId(t.ch_mask, t.addr);
     m.x = t.x; m.y = t.y; m.z = t.z;
     m.drdy = t.drdy; m.overflow = t.overflow;
     msg.tmag.push_back(m);
@@ -111,10 +123,11 @@ class ProtocolNode {
   ProtocolNode() : private_("~"), decoder_(readExpected(private_)), start_(Clock::now()),
                    last_report_(start_) {
     std::string topic;
-    private_.param<std::string>("raw_frame_topic", topic, "/serial_frame_bridge/raw_frames");
-    private_.param<std::string>("sample_topic", sample_topic_, "/maggrad/sample");
+    private_.param<std::string>("raw_frame_topic", topic, "serial_frame_bridge/raw_frames");
+    private_.param<std::string>("sample_topic", sample_topic_, "maggrad/sample");
+    const auto diagnostics_topic = private_.param<std::string>("diagnostics_topic", "diagnostics");
     publisher_ = nh_.advertise<maggrad_protocol::RoundSample>(sample_topic_, 5);
-    diagnostics_ = nh_.advertise<diagnostic_msgs::DiagnosticArray>("/diagnostics", 5);
+    diagnostics_ = nh_.advertise<diagnostic_msgs::DiagnosticArray>(diagnostics_topic, 5);
     subscriber_ = nh_.subscribe(topic, 512, &ProtocolNode::onFrame, this);
     timer_ = nh_.createWallTimer(ros::WallDuration(1.0), &ProtocolNode::onDiagnostics, this);
     ROS_INFO_STREAM("MagGrad protocol subscribing to " << topic << ", publishing " << sample_topic_);
@@ -190,9 +203,11 @@ class ProtocolNode {
 };
 }  // namespace
 
+#ifndef MAGGRAD_PROTOCOL_TEST
 int main(int argc, char** argv) {
   ros::init(argc, argv, "maggrad_protocol");
   try { ProtocolNode node; ros::spin(); }
   catch (const std::exception& e) { ROS_FATAL_STREAM("Invalid protocol configuration: " << e.what()); return 1; }
   return 0;
 }
+#endif

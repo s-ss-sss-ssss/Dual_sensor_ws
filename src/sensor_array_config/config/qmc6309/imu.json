@@ -1,0 +1,21 @@
+{
+  "name": "icm42670",
+  "imu_type": "ICM42670",
+  "imu_frame_id": "maggrad_imu",
+  "publish_scaled_imu": true,
+  "accel_range_g": 4,
+  "gyro_range_dps": 1000,
+  "accel_odr_hz": 200,
+  "gyro_odr_hz": 200,
+  "accel_lsb_per_g": 8192.0,
+  "gyro_lsb_per_dps": 32.8,
+  "temp_lsb_per_c": 128.0,
+  "temp_offset_c": 25.0,
+  "position_m": [-0.090125, 0.00985, 0.00118],
+  "rotation_deg": 270,
+  "axis_transform_matrix": [
+    [0.0, 1.0, 0.0],
+    [-1.0, 0.0, 0.0],
+    [0.0, 0.0, 1.0]
+  ]
+}

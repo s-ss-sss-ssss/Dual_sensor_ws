@@ -81,7 +81,7 @@ class BridgeNode {
     diagnostic_msgs::DiagnosticArray array;
     array.header.stamp = ros::Time::now();
     diagnostic_msgs::DiagnosticStatus status;
-    status.name = "serial_frame_bridge";
+    status.name = ros::this_node::getName() + ": serial bridge";
     status.hardware_id = private_nh_.param<std::string>("port", "/dev/maggrad");
     status.level = s.connected ? diagnostic_msgs::DiagnosticStatus::OK
                                : diagnostic_msgs::DiagnosticStatus::ERROR;

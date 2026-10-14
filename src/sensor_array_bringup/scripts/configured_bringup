@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+"""Foreground wrapper for array.launch; configuration is passed via --config."""
+from sensor_array_bringup.launcher import configured_main
+
+if __name__ == '__main__':
+    raise SystemExit(configured_main())

@@ -1,0 +1,14 @@
+{
+  "name": "TMAG3001",
+  "manufacturer": "Texas Instruments",
+  "bit_width": 16,
+  "range_gs": 400.0,
+  "adu_to_gs": 0.011299435028248588,
+  "gs_to_tesla": 0.0001,
+  "n_sensors": 12,
+  "n_groups": 4,
+  "sensors_per_group": 3,
+  "frame_id": "maggrad_tmag_array",
+  "calibration_status": "placeholder",
+  "notes": "TMAG3001 40 mT range uses 885 LSB/mT; Gs = raw * 10 / 885."
+}

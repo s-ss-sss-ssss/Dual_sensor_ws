@@ -6,3 +6,5 @@ int16 y
 int16 z
 uint8 drdy
 uint8 overflow
+# Logical sensor ID; 0xFF means mapping is unknown.
+uint8 sensor_id

@@ -6,7 +6,8 @@ Second-stage decoder for complete v2 ROUND wire frames. `protocol_node` subscrib
 (maximum 4080 payload bytes), CRC-16/CCITT-FALSE and every TLV boundary/known
 length, then publishes `maggrad_protocol/RoundSample` on `~sample_topic`
 (default `/maggrad/sample`). It also publishes protocol statistics to
-`/diagnostics` once per second. This package has **no serial API**; the bridge
+`~diagnostics_topic` (default `diagnostics`, resolving to `/diagnostics` at
+root) once per second. This package has **no serial API**; the bridge
 owns byte-stream framing, resynchronization, connection and queue diagnostics.
 Build the bridge first (or build both packages with `catkin build`); the
 protocol decoder itself can also be tested independently without ROS.
@@ -37,6 +38,57 @@ when present, each `0xFFFFFFFF` age is likewise invalid. `header` is copied
 from the bridge (host receipt), **not** calculated from device time. Raw
 signed counts and unsigned microsecond read-completion offsets are unchanged.
 
+## Sensor ID interface
+
+`AkSample` and `TmagSample` each append a `uint8 sensor_id`; no `valid` field
+is added. Raw AK `bus`/`mask` and TMAG `ch_mask`/`addr`, counts and status bytes
+remain unchanged. The C++ adapter reserves separate
+`mapAkSensorId(bus, mask)` and `mapTmagSensorId(ch_mask, addr)` functions in
+`src/protocol_node.cpp`. **TODO: the mappings are not confirmed. Both functions
+return `0xFF` for every input**, meaning unknown/unmapped; no physical address
+mapping is inferred. The historical Python adapter also fills `0xFF`.
+Expected-sensor completeness and per-address statistics still use raw byte
+pairs, not this placeholder logical ID. The wire protocol is unchanged.
+Rebuild all message consumers: this changes the MD5 of `AkSample`,
+`TmagSample` and the containing `RoundSample`.
+
+## Namespaces and topic configuration
+
+`protocol.launch` and `joint_debug.launch` inherit the namespace from an
+enclosing `<group ns="...">` or the `ROS_NAMESPACE` environment variable.
+There is no internal namespace wrapper to override the parent's namespace.
+Topic defaults are
+relative, so root-level single-device topic names remain unchanged while
+instances in distinct namespaces are isolated. Explicit absolute topic
+arguments are supported and intentionally bypass the namespace.
+
+| Launch argument | Default (relative to instance namespace) |
+| --- | --- |
+| `raw_frame_topic` | `serial_frame_bridge/raw_frames` |
+| `sample_topic` | `maggrad/sample` |
+| `diagnostics_topic` | `diagnostics` |
+| `tx_bytes_topic` (joint only) | `serial_frame_bridge/tx_bytes` |
+| `statistics_topic` (joint only) | `maggrad_statistics/statistics` |
+
+The protocol node reads private `raw_frame_topic`, `sample_topic`, and
+`diagnostics_topic` parameters, resolving their values in the node's namespace
+(not its private namespace). Joint launch forwards TX configuration to the
+bridge and remaps the statistics output separately from its diagnostics input.
+Diagnostic names include the full node name plus `: protocol`,
+`: serial bridge`, or `: statistics`, avoiding collisions when merging arrays.
+The statistics node also recognizes the legacy `serial_frame_bridge` name.
+Use per-instance diagnostics topics for per-device statistics; explicitly
+sharing a diagnostics topic makes each statistics node observe all sources.
+
+```bash
+# Separate terminals; use the actual stable port for each device:
+ROS_NAMESPACE=board_a roslaunch maggrad_protocol joint_debug.launch port:=/dev/ttyACM0
+ROS_NAMESPACE=board_b roslaunch maggrad_protocol joint_debug.launch port:=/dev/ttyACM1
+# board_a input/output: /board_a/serial_frame_bridge/raw_frames,
+# /board_a/maggrad/sample, /board_a/diagnostics,
+# /board_a/serial_frame_bridge/tx_bytes, /board_a/maggrad_statistics/statistics
+```
+
 STATS records must contain exactly 24 bytes: the five original `uint32`
 counts followed by a little-endian `uint32 device_id` at body offset 20.
 The MCU/board identifier is published unchanged as `stats.device_id` in
@@ -64,7 +116,11 @@ reference, but are not installed or used by the C++ node. The C++ synthetic
 frame test covers complete and sparse rounds, duplicates, malformed records,
 CRC/length/version/type rejection, max payload, unknown TLVs, seq/tick wraps,
 and restart suspicion. There is no claim of sustained 500 Hz operation or
-hardware validation of sustained sensor sampling.
+hardware validation of sustained sensor sampling. `test_protocol_message` checks
+both placeholder mappings over all 65,536 byte pairs and verifies conversion
+preserves raw addresses/counts/status while filling `sensor_id=0xFF`.
+`test_maggrad_statistics` covers both legacy and fully qualified bridge
+diagnostic names.
 
 ## 联合调试与统计
 
@@ -115,6 +171,7 @@ roslaunch maggrad_protocol joint_debug.launch \
 
 `expected_configured` 只是统计节点的声明，不会自动配置解码器，必须与所加载的 YAML 一致。
 可覆盖参数还包括 `raw_frame_topic`、`sample_topic`、`diagnostics_topic`、
+`tx_bytes_topic`、`statistics_topic`、
 `frame_queue_size`、`publish_batch_size`、`statistics_queue_size`、`report_interval` 和 `stale_timeout`。
 
 ### 2026-10-10 实物检查结果

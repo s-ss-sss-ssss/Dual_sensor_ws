@@ -1,0 +1,12 @@
+{
+  "name": "tmag3001",
+  "firmware_protocol": "maggrad_binary_v1",
+  "calibration_status": "placeholder",
+  "notes": "d_list follows the measured PCB layout: 2 mm sensor pitch and approximate ±1.05 mm front/back sensing-center offset from PCB mid-plane, using PCB thickness 1.6 mm plus TMAG3001 sensing-center height. R_CORR follows the observed package markers: sensors 1-6 have A1 at lower-left on the front side, sensors 7-12 have A1 at upper-right on the back side.",
+  "files": {
+    "magnetometer": "magnetometer.json",
+    "array": "array.json",
+    "affine": "affine.json",
+    "imu": "imu.json"
+  }
+}
