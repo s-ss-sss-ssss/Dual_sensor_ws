@@ -20,7 +20,7 @@ class ConfigurationTests(unittest.TestCase):
         self.root = self.directory / 'corrections'
         (self.root / 'board').mkdir(parents=True)
         (self.directory / 'affine.json').write_text('{}', encoding='utf-8')
-        self.source = dict(device_id='board', firmware_device_id=42, namespace='/left',
+        self.source = dict(device_id='board', firmware_device_id=42,
                            port='/dev/example', sensor_correction_dir='corrections')
 
     def load(self, source=...):
@@ -35,27 +35,19 @@ class ConfigurationTests(unittest.TestCase):
         self.assertEqual(result['baud_rate'], 115200)
         self.assertEqual(result['raw_scale'], 1.0)
         self.assertTrue(result['check_device_id'])
-        self.assertEqual(result['topics'], dict(raw_frames='/board/serial_frame_bridge/raw_frames',
-                         tx_bytes='/board/serial_frame_bridge/tx_bytes', sample='/board/maggrad/sample',
-                         diagnostics='/board/diagnostics'))
-        self.assertEqual(result['sensor_correction_sample'], '/board/maggrad/sample_corr')
+        self.assertEqual(result['device_id'], 'board')
+        self.assertNotIn('topics', result)
+        self.assertNotIn('namespace', result)
         self.assertEqual(result['expected_ak'], [])
         self.assertEqual(result['expected_tmag'], [])
         self.assertFalse(result['expect_icm'])
 
-    def test_device_topic_prefix_is_independent_of_namespace(self):
-        expected = self.load()['topics']
-        for namespace, normalized in (('left//arm/', '/left/arm'), ('/', '/'),
-                                      ('/other', '/other')):
-            with self.subTest(namespace=namespace):
-                self.source['namespace'] = namespace
-                result = self.load()
-                self.assertEqual(result['namespace'], normalized)
-                self.assertEqual(result['topics'], expected)
-                self.assertEqual(result['sensor_correction_sample'], '/board/maggrad/sample_corr')
+    def test_device_id_is_the_only_board_name(self):
         (self.root / 'array_02').mkdir()
         self.source['device_id'] = 'array_02'
-        self.assertEqual(self.load()['topics']['sample'], '/array_02/maggrad/sample')
+        result = self.load()
+        self.assertEqual(result['device_id'], 'array_02')
+        self.assertEqual(result['sensor_correction_dir'], str(self.root))
 
     def test_topic_overrides_are_rejected(self):
         for topics in ({}, {'sample': '/custom/sample'}, None):
@@ -106,7 +98,6 @@ class ConfigurationTests(unittest.TestCase):
                                       '123', '~board', 'a b'],
             'firmware_device_id': [True, -1, 0x100000000, '42', 42.0],
             'check_device_id': ['false', 0, None],
-            'namespace': ['', '~private', '/bad-name', '/a b', '/123'],
             'port': ['', False, '$(env PORT)'],
             'baud_rate': [True, 0, -1, '115200'],
             'raw_scale': [True, '1.0', [], float('nan'), float('inf'), -float('inf')],
@@ -141,7 +132,8 @@ class ConfigurationTests(unittest.TestCase):
             with self.subTest(key=key), self.assertRaisesRegex(ValueError, 'missing required'):
                 self.load(source)
         for field, value in (('hardware_config', 'tmag3001'),
-                             ('sensor_correction_file', 'affine.json')):
+                             ('sensor_correction_file', 'affine.json'),
+                             ('namespace', '/other'), ('topics', {})):
             with self.subTest(field=field), self.assertRaisesRegex(ValueError, 'unknown fields'):
                 self.load(dict(self.source, **{field: value}))
         for source in ([], None, {'schema_version': 1, 'devices': [self.source]}):
@@ -157,7 +149,9 @@ class ConfigurationTests(unittest.TestCase):
             self.assertTrue((root / result['device_id']).is_dir())
             for family in ('ak', 'tmag'):
                 self.assertTrue((root / result['device_id'] / family / 'affine.json').is_file())
-            self.assertNotIn('topics', yaml.safe_load((PACKAGE / 'config' / filename).read_text()))
+            source = yaml.safe_load((PACKAGE / 'config' / filename).read_text())
+            self.assertNotIn('topics', source)
+            self.assertNotIn('namespace', source)
 
 
 if __name__ == '__main__':

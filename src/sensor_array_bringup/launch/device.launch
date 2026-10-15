@@ -2,33 +2,27 @@
   <arg name="device_id"/>
   <arg name="firmware_device_id"/>
   <arg name="check_device_id" default="true"/>
-  <arg name="namespace"/>
   <arg name="port"/>
   <arg name="baud_rate" default="115200"/>
   <arg name="sensor_correction_dir"/>
   <arg name="raw_scale" default="1.0"/>
-  <arg name="raw_frame_topic" default="/$(arg device_id)/serial_frame_bridge/raw_frames"/>
-  <arg name="tx_bytes_topic" default="/$(arg device_id)/serial_frame_bridge/tx_bytes"/>
-  <arg name="sample_topic" default="/$(arg device_id)/maggrad/sample"/>
-  <arg name="sensor_correction_sample_topic" default="$(arg sample_topic)_corr"/>
-  <arg name="diagnostics_topic" default="/$(arg device_id)/diagnostics"/>
   <arg name="expected_ak" default="[]"/>
   <arg name="expected_tmag" default="[]"/>
   <arg name="expect_icm" default="false"/>
 
-  <group ns="$(arg namespace)">
+  <group ns="/$(arg device_id)">
     <node pkg="serial_frame_bridge" type="serial_frame_bridge_node"
           name="serial_frame_bridge" output="screen">
       <param name="port" value="$(arg port)" type="str"/>
       <param name="baud_rate" value="$(arg baud_rate)" type="int"/>
-      <remap from="~raw_frames" to="$(arg raw_frame_topic)"/>
-      <remap from="~tx_bytes" to="$(arg tx_bytes_topic)"/>
-      <remap from="~diagnostics" to="$(arg diagnostics_topic)"/>
+      <!-- <remap from="~raw_frames" to="serial_frame_bridge/raw_frames"/> -->
+      <!-- <remap from="~tx_bytes" to="serial_frame_bridge/tx_bytes"/> -->
+      <remap from="~diagnostics" to="diagnostics"/>
     </node>
     <node pkg="maggrad_protocol" type="protocol_node" name="maggrad_protocol" output="screen">
-      <param name="raw_frame_topic" value="$(arg raw_frame_topic)" type="str"/>
-      <param name="sample_topic" value="$(arg sample_topic)" type="str"/>
-      <param name="diagnostics_topic" value="$(arg diagnostics_topic)" type="str"/>
+      <param name="raw_frame_topic" value="serial_frame_bridge/raw_frames" type="str"/>
+      <param name="sample_topic" value="maggrad/sample" type="str"/>
+      <param name="diagnostics_topic" value="diagnostics" type="str"/>
       <!-- Flow-style YAML is validated and serialized by configuration/launcher. -->
       <rosparam param="expected_ak" subst_value="true">$(arg expected_ak)</rosparam>
       <rosparam param="expected_tmag" subst_value="true">$(arg expected_tmag)</rosparam>
@@ -41,9 +35,9 @@
       <!-- uint32 IDs exceed ROS1's signed XML-RPC int range; use decimal strings. -->
       <param name="firmware_device_id" value="$(arg firmware_device_id)" type="str"/>
       <param name="check_device_id" value="$(arg check_device_id)" type="bool"/>
-      <param name="input_topic" value="$(arg sample_topic)" type="str"/>
-      <param name="output_topic" value="$(arg sensor_correction_sample_topic)" type="str"/>
-      <param name="diagnostics_topic" value="$(arg diagnostics_topic)" type="str"/>
+      <param name="input_topic" value="maggrad/sample" type="str"/>
+      <param name="output_topic" value="maggrad/sample_corr" type="str"/>
+      <param name="diagnostics_topic" value="diagnostics" type="str"/>
     </node>
   </group>
 </launch>

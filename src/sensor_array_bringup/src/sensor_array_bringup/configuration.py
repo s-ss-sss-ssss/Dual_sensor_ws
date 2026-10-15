@@ -6,13 +6,7 @@ import re
 import yaml
 
 
-TOPIC_DEFAULTS = {
-    'raw_frames': 'serial_frame_bridge/raw_frames',
-    'tx_bytes': 'serial_frame_bridge/tx_bytes',
-    'sample': 'maggrad/sample',
-    'diagnostics': 'diagnostics',
-}
-_REQUIRED = {'device_id', 'firmware_device_id', 'namespace', 'port', 'sensor_correction_dir'}
+_REQUIRED = {'device_id', 'firmware_device_id', 'port', 'sensor_correction_dir'}
 _OPTIONAL = {'check_device_id', 'baud_rate', 'raw_scale',
              'expected_ak', 'expected_tmag', 'expect_icm'}
 _FIND = re.compile(r'\$\(find\s+([A-Za-z][A-Za-z0-9_]*)\)')
@@ -36,18 +30,6 @@ def _boolean(value, name):
     if type(value) is not bool:
         raise ValueError('%s must be a YAML boolean' % name)
     return value
-
-
-def _ros_name(value, name, allow_root=False):
-    value = _string(value, name)
-    parts = [part for part in value.split('/') if part]
-    if not parts:
-        if allow_root and value.startswith('/'):
-            return '/'
-        raise ValueError('%s must not be the root name' % name)
-    if not all(re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', part) for part in parts):
-        raise ValueError('%s must be a ROS name (no private names or substitutions)' % name)
-    return ('/' if value.startswith('/') else '') + '/'.join(parts)
 
 
 def _pairs(value, name):
@@ -102,7 +84,7 @@ def _sensor_correction_path(value, base, device_id):
 
 
 def load_configuration(config_file):
-    """Validate one board YAML and return resolved paths and absolute topics.
+    """Validate one board YAML and return normalized device settings.
 
     Sensor correction contents are owned by the sensor_correction node; this loader only
     checks the root and device directories. No ports are opened and no files are written.
@@ -125,8 +107,6 @@ def load_configuration(config_file):
         'port': _string(source['port'], 'port'),
         'baud_rate': _integer(source.get('baud_rate', 115200), 'baud_rate', 1, 0x7FFFFFFF),
     }
-    namespace = _ros_name(source['namespace'], 'namespace', allow_root=True)
-    result['namespace'] = '/' + namespace.lstrip('/')
     scale = source.get('raw_scale', 1.0)
     if type(scale) not in (int, float):
         raise ValueError('raw_scale must be a finite scalar')
@@ -139,9 +119,6 @@ def load_configuration(config_file):
     result['raw_scale'] = scale
     result['sensor_correction_dir'] = _sensor_correction_path(
         source['sensor_correction_dir'], path.parent, result['device_id'])
-    result['topics'] = {key: '/' + result['device_id'] + '/' + suffix
-                        for key, suffix in TOPIC_DEFAULTS.items()}
-    result['sensor_correction_sample'] = result['topics']['sample'] + '_corr'
     result['expected_ak'] = _pairs(source.get('expected_ak', []), 'expected_ak')
     result['expected_tmag'] = _pairs(source.get('expected_tmag', []), 'expected_tmag')
     result['expect_icm'] = _boolean(source.get('expect_icm', False), 'expect_icm')

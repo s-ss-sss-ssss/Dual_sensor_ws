@@ -1,8 +1,8 @@
 <launch>
   <!-- One board per include; anonymous wrapper names permit multiple includes. -->
   <arg name="config"/>
-    <arg name="launcher_name" default="$(eval anon('configured_bringup_' + ''.join([c if c.isalnum() else '_' for c in arg('config')])))"/>
-  <node pkg="sensor_array_bringup" type="configured_bringup"
+  <arg name="launcher_name" default="$(eval anon('bringup_' + ''.join([c if c.isalnum() else '_' for c in arg('config')])))"/>
+  <node pkg="sensor_array_bringup" type="bringup"
         name="$(arg launcher_name)" required="true" output="screen"
         args="--config &quot;$(arg config)&quot;"/>
 </launch>

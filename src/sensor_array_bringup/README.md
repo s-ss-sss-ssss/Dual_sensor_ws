@@ -17,17 +17,16 @@ roslaunch sensor_array_bringup array.launch config:=$(rospack find sensor_array_
 各 family 的标定文件及内容在校正节点启动时校验。
 旧 `--generate-only`、`--run-dir` 与多设备 `devices:` YAML 已取消。
 
-Noetic XML launch 不能直接用已加载的参数展开 namespace。`array.launch` 使用轻量
-`configured_bringup` 入口读取 YAML，将参数传给固定的 `device.launch`，不产生临时 launch。
-入口前台管理子 roslaunch，转发 SIGINT/SIGTERM；校正节点属于本包，不属于 protocol。
+`array.launch` 和命令行共用 `bringup` 入口。入口读取 YAML 后用 `exec` 替换为固定的
+`device.launch`，不产生临时 launch，也不需要单独的信号转发包装进程。校正节点属于本包，
+不属于 protocol。
 
 ## 单板配置
 
 ```yaml
-device_id: array_01                  # 单个安全 ROS 名称，也是根目录下的设备目录名
+device_id: array_01                  # 单个安全 ROS 名称，也是 ROS namespace 和标定目录名
 firmware_device_id: 123456789        # STM32 STATS 上报的 uint32，请替换
 check_device_id: true
-namespace: /sensor1
 port: /dev/serial/by-id/your-board
 baud_rate: 115200
 sensor_correction_dir: ../../sensor_array_config/config  # 根目录，不是 JSON 文件
@@ -39,12 +38,13 @@ expected_tmag: []                   # [ch_mask, addr] 对
 expect_icm: false
 ```
 
-必填：`device_id`、`firmware_device_id`、`namespace`、`port`、`sensor_correction_dir`。
+必填：`device_id`、`firmware_device_id`、`port`、`sensor_correction_dir`。
 根目录路径相对于 YAML 所在目录，也支持绝对路径、`~` 和 `$(find package)`；
 根目录及其 `device_id` 子目录必须存在，JSON 文件路径不接受。
 `device_id` 必须匹配 `[A-Za-z_][A-Za-z0-9_]*`，禁止 `/`、`..`、路径穿越、私有名及替换表达式。
-`namespace` 仍为独立必填参数，仅用于放置节点，不影响话题前缀。
-YAML 不接受 `topics`，即使为空也会报错。固定绝对话题为：
+`device_id` 同时作为逻辑设备名、标定子目录名和 ROS namespace 的末段；例如 `array_01`
+对应 `/array_01`。旧配置中的 `namespace` 字段不再接受。
+YAML 不接受 `topics`，即使为空也会报错。节点使用相对话题名，由 ROS namespace 解析为：
 
 - `/<device_id>/serial_frame_bridge/raw_frames`
 - `/<device_id>/serial_frame_bridge/tx_bytes`
@@ -52,17 +52,15 @@ YAML 不接受 `topics`，即使为空也会报错。固定绝对话题为：
 - `/<device_id>/diagnostics`
 - 校正输出：`/<device_id>/maggrad/sample_corr`（原始 `sample` 加 `_corr`）
 
-例如 `device_id: array_01`、`namespace: /sensor1` 的节点位于 `/sensor1`，
-但原始和校正话题分别为 `/array_01/maggrad/sample` 和 `/array_01/maggrad/sample_corr`。
-launcher 将显式解析后的绝对话题传给 `device.launch`；直接启动此 launch 时默认话题同样以
-`/$(arg device_id)/` 开头。ROS 节点名为 `sensor_correction`，可执行文件为 `sensor_correction_node`，
-根目录通过私有参数 `~sensor_correction_dir` 传入。
+例如 `device_id: array_01` 时所有节点都在 `/array_01` 下；三个节点的诊断汇入
+`/array_01/diagnostics`。ROS 节点名为 `sensor_correction`，可执行文件为
+`sensor_correction_node`，标定根目录通过私有参数 `~sensor_correction_dir` 传入。
 示例硬件 ID `0` 与引用的单位矩阵标定均是占位内容，实物使用前必须替换。
 `five_arrays.example.yaml` 保留旧文件名，但内容也已改为单板模板。
 
 ## 多板
 
-每块板准备独立 YAML，配置不同的 device_id、namespace 和串口；可共享同一标定根目录。可以分别启动，或在总 launch 中：
+每块板准备独立 YAML，配置不同的 `device_id` 和串口；可共享同一标定根目录。可以分别启动，或在总 launch 中：
 
 ```xml
 <launch>
@@ -77,7 +75,7 @@ launcher 将显式解析后的绝对话题传给 `device.launch`；直接启动�
 </launch>
 ```
 
-默认入口名称根据配置路径生成，亦可显式设置。不要重复启动相同 device_id/namespace/串口。
+默认入口名称根据配置路径生成，亦可显式设置。不要重复启动相同 `device_id` 或串口。
 单板校验不提供跨进程串口独占或跨板话题冲突检测。
 
 ## 在线传感器校正
@@ -127,7 +125,7 @@ AK 与 TMAG 可使用相同 `sensor_id`，不会互相覆盖。不改变标定�
 所有传感器被跳过时仍发布空校正轮次及计数，不填充假的磁场值。
 `complete` 与 `missing_sensor_mask` 描述原始协议完整性，并非标定覆盖率。
 当前协议逻辑 ID 都是 `0xFF`，因此在映射补充前磁场数组为空。
-`/<device_id>/diagnostics` 报告身份状态与跳过情况。
+`/<device_id>/diagnostics` 汇总 bridge、protocol 和校正节点状态。
 
 ### 微秒时间接口
 
@@ -150,9 +148,9 @@ AK 与 TMAG 可使用相同 `sensor_id`，不会互相覆盖。不改变标定�
 - YAML 和外部 launch 的 `sensor_correction_file` 改为 `sensor_correction_dir`，值改为标定根目录，
   不是 `device_id` 目录或单个 JSON；使用既有 `root/device_id/ak/affine.json` 和
   `root/device_id/tmag/affine.json`，不转换 JSON 内容。
-- 删除 YAML `topics` 覆盖项；旧字段会被拒绝。订阅端改用 `/<device_id>/...` 的绝对话题及
-  `SensorCorrectionRound` 浮点校正消息。修改 `namespace` 不再改变话题路径。
-- 保留必填 `namespace`；为每块设备使用安全且唯一的 `device_id`，并确认对应标定目录存在。
+- 删除 YAML `topics` 和 `namespace` 字段；订阅端使用相对话题名解析到 `/<device_id>/...`，
+  并确认对应标定目录存在。
+- 为每块设备使用安全且唯一的 `device_id`，并继续使用 `SensorCorrectionRound` 浮点校正消息。
 
 ## 验证
 

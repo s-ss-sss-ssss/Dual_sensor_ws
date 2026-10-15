@@ -18,8 +18,8 @@ class SensorCorrectionNode:
         self.unknown = 0
         self.missing = 0
         self.received = False
-        topic = rospy.get_param('~input_topic')
-        self.publisher = rospy.Publisher(rospy.get_param('~output_topic', topic + '_corr'),
+        topic = rospy.get_param('~input_topic', 'maggrad/sample')
+        self.publisher = rospy.Publisher(rospy.get_param('~output_topic', 'maggrad/sample_corr'),
                                          SensorCorrectionRound, queue_size=5)
         self.diagnostics = rospy.Publisher(rospy.get_param('~diagnostics_topic', 'diagnostics'),
                                            DiagnosticArray, queue_size=5)

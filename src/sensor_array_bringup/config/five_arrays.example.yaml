@@ -1,6 +1,6 @@
 # Historical filename retained, but this is now a SINGLE-BOARD template.
-# For five arrays, copy this YAML five times, with distinct IDs, namespaces,
-# ports and measured sensor_correction directories. Include fixed array.launch once per
+# For five arrays, copy this YAML five times, with distinct IDs, ports and
+# measured sensor_correction directories. Include fixed array.launch once per
 # YAML (config:=absolute-path); do not restore a top-level devices list.
 # WARNING: firmware_device_id: 0 is an explicit placeholder, not a known ID.
 # WARNING: ak/affine.json and tmag/affine.json are placeholders; see the config guide:
@@ -8,7 +8,6 @@
 device_id: array_01
 firmware_device_id: 0
 check_device_id: true
-namespace: /sensor1
 port: /dev/sensor_array_01
 baud_rate: 115200
 sensor_correction_dir: ../../sensor_array_config/config
@@ -16,5 +15,4 @@ raw_scale: 1.0
 expected_ak: []
 expected_tmag: []
 expect_icm: false
-# Topics are absolute /<device_id>/...; namespace only places ROS nodes.
-# Corrected output is the resolved sample topic plus '_corr'.
+# Nodes and relative topics are placed in /<device_id>.
