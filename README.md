@@ -1,6 +1,6 @@
 # embedded_array_ws_dual
 
-ROS Noetic catkin 工作区，独立于 Mi-Gels 源码，使用与 Mi-Gels 相同的底层依赖工作区 `zlab_robots`。新的 ROS 包放在 `src/`，运行数据放在 `data/`，不要将构建产物或实验数据提交到仓库。
+ROS Noetic catkin 的工作区，独立于 Mi-Gels 源码，使用与 Mi-Gels 相同的底层依赖工作区 `zlab_robots`。新的 ROS 包放在 `src/`，运行数据放在 `data/`，不要将构建产物或实验数据提交到仓库。
 
 ## 初始化与构建
 

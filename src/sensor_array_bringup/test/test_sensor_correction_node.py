@@ -6,6 +6,8 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
+import numpy as np
+
 try:
     from maggrad_protocol.msg import RoundSample, AkSample, TmagSample
     from sensor_array_bringup.sensor_correction_node import SensorCorrectionNode
@@ -46,7 +48,7 @@ class NodeTests(unittest.TestCase):
         msg.tmag = [TmagSample(sensor_id=255), TmagSample(sensor_id=2)]
         node.on_round(msg)
         result = node.publisher.publish.call_args.args[0]
-        self.assertEqual((result.ak[0].x, result.ak[0].y, result.ak[0].z), (3., 6., 9.))
+        np.testing.assert_allclose((result.ak[0].x, result.ak[0].y, result.ak[0].z), (3.2, 6.4, 9.6))
         self.assertEqual((result.ak[0].channel, result.ak[0].address), (3, 4))
         self.assertEqual(result.round_seq, 123)
         self.assertTrue(result.identity_verified)
@@ -68,7 +70,7 @@ class NodeTests(unittest.TestCase):
                           tmag=[TmagSample(sensor_id=1, x=2, y=4, z=6)])
         node.on_round(msg)
         result = node.publisher.publish.call_args.args[0]
-        self.assertEqual((result.ak[0].x, result.ak[0].y, result.ak[0].z), (3., 6., 9.))
+        np.testing.assert_allclose((result.ak[0].x, result.ak[0].y, result.ak[0].z), (3.2, 6.4, 9.6))
         self.assertEqual((result.tmag[0].x, result.tmag[0].y, result.tmag[0].z), (12., 24., 36.))
         self.assertEqual(result.skipped_missing_sensor_correction, 0)
         result.serialize(io.BytesIO())

@@ -7,6 +7,10 @@ import re
 import numpy as np
 
 
+# AK: signed int16 counts -> microtesla, applied independently to X/Y/Z.
+AK_UT_PER_COUNT = 1.1
+
+
 class AffineSensorCorrection:
     def __init__(self, config_dir, device_id, raw_scale=1.0):
         self.raw_scale = float(raw_scale)
@@ -54,8 +58,11 @@ class AffineSensorCorrection:
     def apply(self, family, sensor_id, raw):
         if sensor_id == 0xFF or (family, sensor_id) not in self.parameters:
             return None
-        # Scaling is deliberately separate: firmware units can be filled in later.
+        # Protocol already decodes signed int16; no offset or unsigned conversion.
         scaled = np.asarray(raw, dtype=float) * self.raw_scale
+        if family == 'ak':
+            scaled *= AK_UT_PER_COUNT
+        # TODO: confirm TMAG physical-unit conversion; retain its existing scale.
         matrix, bias = self.parameters[(family, sensor_id)]
         result = matrix @ scaled + bias
         if not np.isfinite(result).all():

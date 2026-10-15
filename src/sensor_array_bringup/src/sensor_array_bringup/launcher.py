@@ -12,7 +12,7 @@ def launch_command(configuration):
     """Return the fixed single-board launch command as an argv list."""
     values = {key: configuration[key] for key in (
         'device_id', 'firmware_device_id', 'check_device_id', 'port',
-        'baud_rate', 'sensor_correction_dir', 'raw_scale', 'expect_icm')}
+        'baud_rate', 'sensor_correction_dir', 'raw_scale', 'expect_icm', 'field_range')}
     for key in ('expected_ak', 'expected_tmag'):
         values[key] = yaml.safe_dump(configuration[key], default_flow_style=True,
                                      width=100000).strip()

@@ -1,6 +1,6 @@
 # sensor_array_bringup
 
-每块串口板一个顶层 YAML；固定 launch 启动 bridge、protocol 和在线校正节点。
+每块串口板一个顶层 YAML；固定 launch 启动 bridge、protocol、在线校正和终端可视化节点。
 不生成 launch、不复制配置快照，不再依赖 `sensor_array_config.load_deployment`。
 
 ## 使用
@@ -30,7 +30,8 @@ check_device_id: true
 port: /dev/serial/by-id/your-board
 baud_rate: 115200
 sensor_correction_dir: ../../sensor_array_config/config  # 根目录，不是 JSON 文件
-raw_scale: 1.0                      # 暂存占位，待确定原始数据单位
+raw_scale: 1.0                      # 额外缩放；AK 的 1.1 uT/count 在代码中单独应用
+field_range: 1000.0                 # 合成场强上限，示例值；单位沿用校正输出，请按实际设置
 
 # 可选：内联协议预期地址，不另需 expected_sensors YAML
 expected_ak: []                     # [bus, mask] 对
@@ -57,6 +58,26 @@ YAML 不接受 `topics`，即使为空也会报错。节点使用相对话题名
 `sensor_correction_node`，标定根目录通过私有参数 `~sensor_correction_dir` 传入。
 示例硬件 ID `0` 与引用的单位矩阵标定均是占位内容，实物使用前必须替换。
 `five_arrays.example.yaml` 保留旧文件名，但内容也已改为单板模板。
+
+## 终端可视化
+
+bringup 自动启动 `sensor_visualization_node`，订阅同 namespace 下的
+`maggrad/sample_corr`。每 0.2 秒（5 Hz）读取最新一帧，在 AK 和 TMAG 的 ID 1～12
+中选出 `|B| = sqrt(X² + Y² + Z²)` 最大的传感器，输出设备名、轮次、类型、ID、
+`|B|` 和 X/Y/Z；相同 ID 的两种类型独立参与比较，等值时取先出现者。
+无有效样本时输出提示；NaN/Inf 不参与比较。未收到新帧时重复显示最新轮次，
+可通过 round 判断数据是否更新。
+
+`single_array.yaml` 的 `field_range` 必须为有限正数，表示合成场强上限，
+与校正输出单位相同，默认 `1000.0` 仅为示例，并非芯片硬件量程。
+每次收到消息均检查上述 ID 范围的最大值，严格超过上限时发出 WARN；
+持续超量程时告警最多每秒一次，终端数值仍以 5 Hz 更新。
+
+也可以单独启动（已有 bringup 时无需重复启动）：
+
+```bash
+rosrun sensor_array_bringup sensor_visualization_node __ns:=/array_01 _field_range:=1000.0
+```
 
 ## 多板
 
@@ -98,7 +119,24 @@ AK 与 TMAG 可使用相同 `sensor_id`，不会互相覆盖。不改变标定�
 {"sensors": [{"sensor_id": 1, "D_i": [[1,0,0],[0,1,0],[0,0,1]], "e_i": [0,0,0]}]}
 ```
 
-公式严格使用历史模型：`b_corr = D_i @ (raw_scale * b_raw) + e_i`。
+AK 每轴先换算为物理场强：`B_uT = RAW × 1.1`，单位为 µT。
+协议层已将 RAW 按 `int16_t` 解码，保留负数，不按无符号数解释，也不减 32768。
+AK 每轴标称量程为 ±36.04 mT（±36040 µT）；这是单轴量程，
+不是合成场强上限，`field_range` 仍按合成场强独立配置。
+
+随后应用仿射校正：
+
+- AK：`b_corr = D_i @ (raw_scale * (b_raw * 1.1)) + e_i`。
+- TMAG：暂保留 `b_corr = D_i @ (raw_scale * b_raw) + e_i`。
+
+`raw_scale` 为额外公共缩放，通常保持 `1.0`，不应再填 `1.1`。
+AK 标定系数应对应 µT 输入（输出为 µT 时，偏置也应使用 µT）；
+如已有系数包含原始计数到物理单位的转换，需要同步调整以免重复缩放。
+
+**TODO（TMAG）：后续沟通确认传感器型号、量程设置、各轴灵敏度及原始读数到物理单位的换算。**
+目前不新增 TMAG 换算，其输出单位尚未统一为 µT；AK/TMAG 混合时，
+可视化中的跨类型最大值比较和共用量程阈值暂不具备统一物理单位含义。
+
 该历史代码实际是 affine 拟合，不是在线椭球求解；本节点只应用已有系数。
 缩放在独立步骤中预留，不做 R_CORR/坐标旋转，不标定 IMU。矩阵和偏置须有限且尺寸正确，
 同一 family 内重复 sensor_id、空标定列表、缺文件等在启动时报错。
@@ -118,7 +156,8 @@ AK 与 TMAG 可使用相同 `sensor_id`，不会互相覆盖。不改变标定�
 
 `SensorCorrectionRound` 包含原始轮次时间、phase、IMU、错误和统计信息，另含逻辑设备名称、
 硬件 ID 是否已观察到及身份验证状态。AK/TMAG 使用 `SensorCorrectionSample` 的 float64 三轴值；
-保留 sensor_id、读取偏移、硬件地址和状态位。单位取决于 raw_scale 与标定文件，暂不声明 SI。
+保留 sensor_id、读取偏移、硬件地址和状态位。AK 仿射输入已换算为 µT，
+最终输出单位取决于标定系数；TMAG 物理单位换算待确认。
 
 `sensor_id == 0xFF` 直接跳过；缺对应系数也跳过，并分别记录
 `skipped_unknown_id` 与 `skipped_missing_sensor_correction`。原始消息不修改。

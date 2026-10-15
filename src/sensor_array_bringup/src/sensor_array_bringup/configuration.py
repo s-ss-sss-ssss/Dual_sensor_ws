@@ -8,7 +8,7 @@ import yaml
 
 _REQUIRED = {'device_id', 'firmware_device_id', 'port', 'sensor_correction_dir'}
 _OPTIONAL = {'check_device_id', 'baud_rate', 'raw_scale',
-             'expected_ak', 'expected_tmag', 'expect_icm'}
+             'expected_ak', 'expected_tmag', 'expect_icm', 'field_range'}
 _FIND = re.compile(r'\$\(find\s+([A-Za-z][A-Za-z0-9_]*)\)')
 
 
@@ -117,6 +117,7 @@ def load_configuration(config_file):
     if not math.isfinite(scale):
         raise ValueError('raw_scale must be a finite scalar')
     result['raw_scale'] = scale
+    result['field_range'] = validate_field_range(source.get('field_range', 1000.0))
     result['sensor_correction_dir'] = _sensor_correction_path(
         source['sensor_correction_dir'], path.parent, result['device_id'])
     result['expected_ak'] = _pairs(source.get('expected_ak', []), 'expected_ak')
@@ -129,3 +130,16 @@ def load_configuration(config_file):
         if '$(' in result[key]:
             raise ValueError('%s must not contain unresolved ROS substitutions' % key)
     return result
+
+
+def validate_field_range(value):
+    """Positive magnitude limit, in corrected magnetic vector units."""
+    if type(value) not in (int, float):
+        raise ValueError('field_range must be a finite positive scalar')
+    try:
+        value = float(value)
+    except OverflowError as error:
+        raise ValueError('field_range must be a finite positive scalar') from error
+    if not math.isfinite(value) or value <= 0:
+        raise ValueError('field_range must be a finite positive scalar')
+    return value

@@ -25,14 +25,22 @@ class SensorCorrectionTests(unittest.TestCase):
 
     def test_legacy_formula_and_scale_before_bias(self):
         model = self.load([self.entry()], 0.5)
-        np.testing.assert_allclose(model.apply('ak', 1, [2, 4, 6]), [15, 5, 14])
+        np.testing.assert_allclose(model.apply('ak', 1, [2, 4, 6]), [15.5, 5.6, 15.2])
 
     def test_same_id_different_families(self):
         model = self.load([self.entry()], other_family=[dict(self.entry(), e_i=[0, 0, 0])])
-        np.testing.assert_allclose(model.apply('ak', 1, [1, 1, 1]), [13, 2, 6])
+        np.testing.assert_allclose(model.apply('ak', 1, [1, 1, 1]), [13.3, 2.3, 6.4])
         np.testing.assert_allclose(model.apply('tmag', 1, [1, 1, 1]), [3, 3, 4])
         self.assertEqual(set(model.families), {'ak', 'tmag'})
         self.assertEqual(set(model.parameters), {('ak', 1), ('tmag', 1)})
+
+    def test_ak_signed_counts_to_microtesla(self):
+        identity = dict(self.entry(), D_i=np.eye(3).tolist(), e_i=[0, 0, 0])
+        model = self.load([identity], other_family=[identity])
+        for raw in ([0, -1, 1], [-32768, 32767, -100]):
+            with self.subTest(raw=raw):
+                np.testing.assert_allclose(model.apply('ak', 1, raw), np.array(raw) * 1.1)
+                np.testing.assert_allclose(model.apply('tmag', 1, raw), raw)
 
     def test_unknown_and_missing_ids_or_families_skipped(self):
         model = self.load([self.entry()])

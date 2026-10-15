@@ -6,6 +6,7 @@
   <arg name="baud_rate" default="115200"/>
   <arg name="sensor_correction_dir"/>
   <arg name="raw_scale" default="1.0"/>
+  <arg name="field_range" default="1000.0"/>
   <arg name="expected_ak" default="[]"/>
   <arg name="expected_tmag" default="[]"/>
   <arg name="expect_icm" default="false"/>
@@ -38,6 +39,11 @@
       <param name="input_topic" value="maggrad/sample" type="str"/>
       <param name="output_topic" value="maggrad/sample_corr" type="str"/>
       <param name="diagnostics_topic" value="diagnostics" type="str"/>
+    </node>
+    <node pkg="sensor_array_bringup" type="sensor_visualization_node"
+          name="sensor_visualization" output="screen">
+      <param name="input_topic" value="maggrad/sample_corr" type="str"/>
+      <param name="field_range" value="$(arg field_range)" type="double"/>
     </node>
   </group>
 </launch>

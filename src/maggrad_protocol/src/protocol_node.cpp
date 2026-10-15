@@ -57,13 +57,22 @@ void field(diagnostic_msgs::DiagnosticStatus& status, const char* name, T value)
   status.values.push_back(kv);
 }
 
-uint8_t mapAkSensorId(uint8_t /*bus*/, uint8_t /*mask*/) {
-  // TODO: Confirm AK bus+mask -> logical ID mapping; do not infer addresses.
+// Fixed wiring IDs from docs/sensor_id_map.md; invalid locations remain unknown.
+uint8_t mapAkSensorId(uint8_t bus, uint8_t mask) {
+  if (bus != 1 && bus != 2) return 0xFF;
+  for (uint8_t channel = 1; channel <= 6; ++channel) {
+    if (mask == (1u << channel))
+      return static_cast<uint8_t>((bus - 1) * 6 + channel);
+  }
   return 0xFF;
 }
 
-uint8_t mapTmagSensorId(uint8_t /*ch_mask*/, uint8_t /*addr*/) {
-  // TODO: Confirm TMAG ch_mask+addr -> logical ID mapping; do not infer addresses.
+uint8_t mapTmagSensorId(uint8_t ch_mask, uint8_t addr) {
+  if (addr < 0x34 || addr > 0x36) return 0xFF;
+  for (uint8_t channel = 1; channel <= 4; ++channel) {
+    if (ch_mask == (1u << channel))
+      return static_cast<uint8_t>((channel - 1) * 3 + (addr - 0x34) + 1);
+  }
   return 0xFF;
 }
 

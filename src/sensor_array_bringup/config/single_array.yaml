@@ -12,7 +12,10 @@ check_device_id: false
 port: /dev/serial/by-id/usb-STMicroelectronics_STM32_Virtual_ComPort_315E39623233-if00
 baud_rate: 115200
 sensor_correction_dir: ../../sensor_array_config/config
+# 额外缩放，通常保持 1.0；AK 的 1.1 uT/count 已在代码中单独应用。
 raw_scale: 1.0
+# 合成场强 |B| 的上限，单位与校正输出相同；1000 仅为示例，请按实际量程修改。
+field_range: 3604.0 # AK Sensor, 3604 uT
 # Paths are relative to this YAML, or absolute; $(find pkg) is supported lazily.
 # Nodes and relative topics are placed in /<device_id>.
 # Exact transmitted byte pairs; no confirmed address-to-chip-ID mapping.

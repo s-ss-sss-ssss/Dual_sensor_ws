@@ -34,6 +34,7 @@ class ConfigurationTests(unittest.TestCase):
         self.assertEqual(result['sensor_correction_dir'], str(self.root))
         self.assertEqual(result['baud_rate'], 115200)
         self.assertEqual(result['raw_scale'], 1.0)
+        self.assertEqual(result['field_range'], 1000.0)
         self.assertTrue(result['check_device_id'])
         self.assertEqual(result['device_id'], 'board')
         self.assertNotIn('topics', result)
@@ -101,6 +102,7 @@ class ConfigurationTests(unittest.TestCase):
             'port': ['', False, '$(env PORT)'],
             'baud_rate': [True, 0, -1, '115200'],
             'raw_scale': [True, '1.0', [], float('nan'), float('inf'), -float('inf')],
+            'field_range': [True, '1000', None, 0, -1, float('nan'), float('inf')],
             'sensor_correction_dir': ['', 'absent', '$(env HOME)/corrections', True],
             'expected_ak': [None, {}, [1], [[1]], [[1, 2, 3]], [[True, 2]],
                             [[-1, 2]], [[1, 256]], [[1, 2], [1, 2]]],

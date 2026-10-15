@@ -5,7 +5,7 @@ catkin_python_setup()
 add_message_files(FILES SensorCorrectionSample.msg SensorCorrectionRound.msg)
 generate_messages(DEPENDENCIES std_msgs maggrad_protocol)
 catkin_package(CATKIN_DEPENDS message_runtime std_msgs maggrad_protocol)
-catkin_install_python(PROGRAMS scripts/bringup scripts/sensor_correction_node
+catkin_install_python(PROGRAMS scripts/bringup scripts/sensor_correction_node scripts/sensor_visualization_node
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 install(DIRECTORY config launch DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 install(FILES README.md DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})

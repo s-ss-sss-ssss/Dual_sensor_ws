@@ -32,9 +32,10 @@ class LaunchTests(unittest.TestCase):
         self.assertEqual(yaml.safe_load(args['expected_ak']), [[1, 255]])
         self.assertEqual(yaml.safe_load(args['expected_tmag']), [[2, 53]])
         self.assertEqual(args['sensor_correction_dir'], config['sensor_correction_dir'])
+        self.assertEqual(float(args['field_range']), config['field_range'])
         self.assertEqual(set(args), {
             'device_id', 'firmware_device_id', 'check_device_id', 'port', 'baud_rate',
-            'sensor_correction_dir', 'raw_scale', 'expect_icm', 'expected_ak', 'expected_tmag'})
+            'sensor_correction_dir', 'raw_scale', 'expect_icm', 'expected_ak', 'expected_tmag', 'field_range'})
 
     def test_argument_paths_with_spaces_are_not_shell_split(self):
         config = self.configuration()
@@ -80,11 +81,16 @@ class LaunchTests(unittest.TestCase):
         defaults = {arg.attrib['name']: arg.attrib.get('default') for arg in root.findall('arg')}
         self.assertEqual(set(defaults), {
             'device_id', 'firmware_device_id', 'check_device_id', 'port', 'baud_rate',
-            'sensor_correction_dir', 'raw_scale', 'expected_ak', 'expected_tmag', 'expect_icm'})
+            'sensor_correction_dir', 'raw_scale', 'expected_ak', 'expected_tmag', 'expect_icm', 'field_range'})
         self.assertEqual(defaults['device_id'], None)
         group = root.find('group')
         self.assertEqual(group.attrib['ns'], '/$(arg device_id)')
-        bridge, protocol, correction = group.findall('node')
+        bridge, protocol, correction, visualization = group.findall('node')
+        self.assertEqual(visualization.attrib['type'], 'sensor_visualization_node')
+        self.assertEqual(visualization.attrib['output'], 'screen')
+        self.assertEqual({item.attrib['name']: item.attrib['value']
+                          for item in visualization.findall('param')},
+                         {'input_topic': 'maggrad/sample_corr', 'field_range': '$(arg field_range)'})
         self.assertEqual([node.attrib['type'] for node in (bridge, protocol, correction)],
                          ['serial_frame_bridge_node', 'protocol_node', 'sensor_correction_node'])
         bridge_remaps = {item.attrib['from']: item.attrib['to'] for item in bridge.findall('remap')}
