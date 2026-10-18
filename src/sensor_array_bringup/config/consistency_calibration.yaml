@@ -1,0 +1,65 @@
+# Replace all null hardware values after manual gain adjustment / preheating.
+# This template deliberately fails --check until the experiment is configured.
+device_id: array_01
+firmware_device_id: 3063479653 # Same physical board as single_array.yaml; STATS uint32
+axes_confirmed: true         # Verify R_CORR against physical installation first
+sensor_mode: 'AK09973D high-sensitivity low-noise continuous 500 Hz; CNTL2=0x0C'
+array_geometry: ../../sensor_array_config/config/array_01/ak/array.json
+output_root: ../../../data/consistency
+generator_namespace: /fy8300
+
+# Each axis maps to a distinct generator channel. DC voltages, not field truth
+# or waveform Vpp. Negative trials negate offset; amplifier gain stays fixed.
+# 2026-10-16 manual observation: X/Z=5 V, Y=2 V gave about 1500 uT.
+# Use 20/40/60/80/100% of those DC levels; approximate incremental responses
+# are 300/600/900/1200/1500 uT only if response is linear and background removed.
+# max_abs_offset_v is this experiment's software ceiling, not a hardware rating.
+channels:
+  X:
+    channel: 1
+    # recommend 5V, |B| = 2800 uT
+    levels_v: [1.0, 2.0, 3.0, 4.0, 5.0]
+    max_abs_offset_v: 5.0
+  Y:
+    channel: 2
+    # recommend 2V
+    levels_v: [0.4, 0.8, 1.2, 1.6, 2.0]
+    max_abs_offset_v: 2.0
+  Z:
+    channel: 3
+    # recommend 5V
+    levels_v: [1.0, 2.0, 3.0, 4.0, 5.0]
+    max_abs_offset_v: 5.0
+    # Optional per-axis validation_v; defaults to midpoint of levels 2 and 3.
+
+reference_id: null             # null: select on startup window, then freeze
+startup_s: 3.0                # Data check only, no warmup loop
+capture_s: 3.0                # Each pre / on / post capture
+settle_s: 1.0
+max_capture_s: 15.0            # Extend only for insufficient sample counts
+min_samples: 500              # Per sensor, per full capture (including startup)
+subwindow_s: 0.5
+short_window_s: 0.1           # Application window for separate validation report
+repeats: 3
+retries: 2                    # Additional attempts per trial
+seed: 20261015
+
+# Estimated timestamp alignment, not hardware synchronization. Lock is a short
+# clock acquisition step, separate from startup sensor checks and preheating.
+clock_lock_s: 1.0
+clock_guard_s: 0.25            # Exclude both edges of each capture
+clock_residual_limit_s: 0.25
+connection_timeout_s: 30.0
+stream_timeout_s: 3.0
+command_timeout_s: 10.0        # Two fresh status polls must match each command
+output_tolerance_v: 0.002
+rcond: 1.0e-10
+max_condition: 1000.0         # Configurable engineering starting point
+
+# Set from measured startup noise / task accuracy budget. Null means report-only,
+# not an assertion that stability / localization performance has passed.
+max_std_ut: null
+max_slope_ut_s: null
+max_background_change_ut: null
+max_validation_rmse_ut: null
+max_validation_pairwise_ut: null

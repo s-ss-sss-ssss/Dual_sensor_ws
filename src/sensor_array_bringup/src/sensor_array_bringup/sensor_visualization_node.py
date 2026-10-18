@@ -39,7 +39,7 @@ class SensorVisualizationNode:
         if strongest is not None and strongest[0] > self.field_range:
             magnitude, family, sample = strongest
             rospy.logwarn_throttle(
-                1.0, '%s %s ID=%d over range: |B|=%.6g > %.6g',
+                1.0, '%s %s ID=%2d over range: |B|=%.6g > %.6g',
                 msg.device_id, family.upper(), sample.sensor_id, magnitude, self.field_range)
         with self.lock:
             self.latest = (msg, strongest)
@@ -56,7 +56,7 @@ class SensorVisualizationNode:
                           msg.device_id, msg.round_seq)
             return
         magnitude, family, sample = strongest
-        rospy.loginfo('%s round=%d %s ID=%d |B|=%.6g X=%.6g Y=%.6g Z=%.6g',
+        rospy.loginfo('%s round=%d %s ID=%2d |B|=%.6g X=%.6g Y=%.6g Z=%.6g',
                       msg.device_id, msg.round_seq, family.upper(), sample.sensor_id,
                       magnitude, sample.x, sample.y, sample.z)
 

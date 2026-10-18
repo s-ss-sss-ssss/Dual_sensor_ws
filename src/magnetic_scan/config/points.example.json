@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "frame": "initial_sensor",
+  "points": [
+    {"id": "origin", "offset_m": [0, 0, 0], "vision_check": true, "settle_s": 1.0, "sample_s": 1.0},
+    {"id": "x_plus", "offset_m": [0.002, 0, 0], "vision_check": false, "settle_s": 1.0, "sample_s": 1.0},
+    {"id": "return", "offset_m": [0, 0, 0], "vision_check": true, "settle_s": 1.0, "sample_s": 1.0}
+  ]
+}

@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>magnetic_scan</name><version>0.1.0</version>
+  <description>Vision aligned dual arm magnetic field scanning and recording.</description>
+  <maintainer email="maintainers@example.com">ZLab Maintainers</maintainer><license>MIT</license>
+  <buildtool_depend>catkin</buildtool_depend>
+  <exec_depend>rospy</exec_depend><exec_depend>roslaunch</exec_depend><exec_depend>rospkg</exec_depend>
+  <exec_depend>tf2_ros</exec_depend><exec_depend>geometry_msgs</exec_depend><exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend><exec_depend>std_srvs</exec_depend><exec_depend>rosbag</exec_depend>
+  <exec_depend>moveit_commander</exec_depend><exec_depend>moveit_msgs</exec_depend>
+  <exec_depend>actionlib</exec_depend><exec_depend>tf2_msgs</exec_depend><exec_depend>genpy</exec_depend>
+  <exec_depend>serial_frame_bridge</exec_depend><exec_depend>maggrad_protocol</exec_depend><exec_depend>sensor_array_bringup</exec_depend>
+  <exec_depend>zlab_robots_bringup</exec_depend><exec_depend>zlab_robots_calibration</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend><exec_depend>diana7_hardware</exec_depend><exec_depend>fr5_hardware</exec_depend>
+  <exec_depend>triple_arm_moveit_config</exec_depend><exec_depend>multi_arm_description</exec_depend><exec_depend>xacro</exec_depend>
+  <exec_depend>python3-numpy</exec_depend><exec_depend>python3-scipy</exec_depend><exec_depend>python3-yaml</exec_depend>
+  <test_depend>python3-nose</test_depend>
+</package>

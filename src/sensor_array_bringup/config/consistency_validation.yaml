@@ -1,0 +1,47 @@
+# Copy this file, fill in the manually measured temperature and environment label.
+# Relative paths are resolved against the copied YAML's directory.
+device_id: array_01
+firmware_device_id: 3063479653
+axes_confirmed: true
+sensor_mode: 'AK09973D high-sensitivity low-noise continuous 500 Hz; CNTL2=0x0C'
+calibration_file: ../../../data/consistency/run_20261017T083604.813944Z/calibration.json
+array_geometry: ../../sensor_array_config/config/array_01/ak/array.json
+output_root: ../../../data/consistency_validation
+# Full samples are written during acquisition. After successful shutdown and
+# verification of lossless current-metric replay, raw_stream.csv and samples.csv
+# are removed. All platform statistics and every short-window mean are retained.
+generator_namespace: /fy8300
+environment_label: 'repower_hot_temperature_without_fan'          # e.g. chamber_25C_background_A
+temperature_c: 30            # Required manual environment measurement, not die temperature
+notes: ''                     # e.g. thermometer, soak time, static-field source
+channels:
+  X: {channel: 1, levels_v: [1.0, 2.5, 4.5], combination_v: 2.5, max_abs_offset_v: 5.0}
+  Y: {channel: 2, levels_v: [0.4, 1.0, 1.8], combination_v: 1.0, max_abs_offset_v: 2.0}
+  Z: {channel: 3, levels_v: [1.0, 2.5, 4.5], combination_v: 2.5, max_abs_offset_v: 5.0}
+startup_s: 3.0
+settle_s: 3.0
+capture_s: 3.0
+max_capture_s: 15.0
+min_samples: 500
+subwindow_s: 0.5
+short_window_s: 0.1
+retries: 2
+clock_guard_s: 0.25
+clock_residual_limit_s: 0.25
+clock_lock_s: 1.0
+connection_timeout_s: 30.0
+stream_timeout_s: 3.0
+command_timeout_s: 10.0
+output_tolerance_v: 0.002
+# Null: record quality statistics, do not declare the platform stable.
+max_std_ut: null
+max_slope_ut_s: null
+max_background_change_ut: null
+# Common limits applied to corrected increment AND total fields, all phases.
+# Short-window limits apply to every accepted short window; missing windows fail.
+# No limits: performance_pass.long/short are null, independent of data_valid.
+performance_limits:
+  axis_rmse_ut: null
+  vector_rmse_ut: null
+  max_pairwise_ut: null
+  maps_gradient_frobenius_ut_m: null

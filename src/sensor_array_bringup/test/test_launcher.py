@@ -94,7 +94,12 @@ class LaunchTests(unittest.TestCase):
         self.assertEqual([node.attrib['type'] for node in (bridge, protocol, correction)],
                          ['serial_frame_bridge_node', 'protocol_node', 'sensor_correction_node'])
         bridge_remaps = {item.attrib['from']: item.attrib['to'] for item in bridge.findall('remap')}
-        self.assertEqual(bridge_remaps, {
+        # Private topics already resolve under the node's name. Identity remaps
+        # are optional; validate the actual wiring instead of their spelling.
+        effective_topics = {
+            topic: bridge_remaps.get(topic, bridge.attrib['name'] + '/' + topic[1:])
+            for topic in ('~raw_frames', '~tx_bytes', '~diagnostics')}
+        self.assertEqual(effective_topics, {
             '~raw_frames': 'serial_frame_bridge/raw_frames',
             '~tx_bytes': 'serial_frame_bridge/tx_bytes',
             '~diagnostics': 'diagnostics'})

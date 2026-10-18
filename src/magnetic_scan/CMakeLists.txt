@@ -1,0 +1,12 @@
+cmake_minimum_required(VERSION 3.0.2)
+project(magnetic_scan)
+find_package(catkin REQUIRED)
+catkin_python_setup()
+catkin_package()
+catkin_install_python(PROGRAMS scripts/scan_node scripts/scan_mock scripts/scan_bringup scripts/scan_joint_states
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+install(DIRECTORY config launch DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+install(FILES README.md DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+if(CATKIN_ENABLE_TESTING)
+  catkin_add_nosetests(test)
+endif()

@@ -1,0 +1,10 @@
+#!/usr/bin/env python3
+import sys
+from sensor_array_bringup.validation_ros import main
+
+if __name__ == '__main__':
+    try:
+        main()
+    except (OSError, ValueError, KeyError, RuntimeError, TypeError) as error:
+        print('Validation failed: %s' % error, file=sys.stderr)
+        sys.exit(1)

@@ -1,0 +1,10 @@
+<launch>
+  <arg name="config" default="$(find sensor_array_bringup)/config/consistency_validation.yaml"/>
+  <arg name="start_generator" default="true"/>
+  <arg name="generator_config" default="$(find sensor_array_bringup)/config/fy8300_calibration.yaml"/>
+  <node if="$(arg start_generator)" name="fy8300_node" pkg="signal_generator" type="fy8300_node" output="screen">
+    <rosparam command="load" file="$(arg generator_config)"/>
+  </node>
+  <node name="consistency_validation" pkg="sensor_array_bringup" type="consistency_validation"
+        args="--config &quot;$(arg config)&quot;" output="screen"/>
+</launch>

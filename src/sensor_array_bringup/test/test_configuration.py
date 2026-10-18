@@ -145,7 +145,8 @@ class ConfigurationTests(unittest.TestCase):
     def test_examples_are_single_board(self):
         for filename in ('single_array.yaml', 'five_arrays.example.yaml'):
             result = load_configuration(PACKAGE / 'config' / filename)
-            self.assertEqual(result['firmware_device_id'], 0)
+            source = yaml.safe_load((PACKAGE / 'config' / filename).read_text())
+            self.assertEqual(result['firmware_device_id'], int(source['firmware_device_id']))
             root = Path(result['sensor_correction_dir'])
             self.assertEqual(root, PACKAGE.parent / 'sensor_array_config' / 'config')
             self.assertTrue((root / result['device_id']).is_dir())

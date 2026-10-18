@@ -203,3 +203,21 @@ catkin_test_results build/sensor_array_bringup
 无需硬件的测试不替代实际串口、数据缩放和测量标定效果验证。
 `launch/device_00`、`resolved_config.yaml` 和 `solo_dev0.launch` 为旧流程遗留文件，
 新入口不使用；保留它们以免覆盖已有实验配置。
+
+## AK09973D 相对一致性标定
+
+实验流程、中间文件保存位置和算法推导见 [一致性标定完整说明](docs/AK09973D_consistency_calibration_guide.md)。
+
+新增独立的 `consistency_calibration` 工具：人工调好放大器增益并预热后，用启动短窗检查数据，自动采集每通道可配置的五档正负直流励磁，拟合 3×3 相对矩阵并独立验证。仅输出标定结果，不改现有在线校正参数。模板必须填写实测设备 ID、五档电平及限值，并确认安装轴向后才能启动。
+
+配置与完整操作说明见 [一致性标定使用说明](docs/consistency_calibration_usage.md)，实验依据见 [基线规格](docs/AK09973D_consistency_calibration_baseline.md)。先使用 `--check` 和 `--dry-run` 检查，启动阵列上位机后运行。标定 launch 默认同时启动信号源驱动；若驱动已在运行，传入 `start_generator:=false`：
+
+```bash
+rosrun sensor_array_bringup consistency_calibration --config /absolute/experiment.yaml --check
+rosrun sensor_array_bringup consistency_calibration --config /absolute/experiment.yaml --dry-run
+roslaunch sensor_array_bringup consistency_calibration.launch config:=/absolute/experiment.yaml
+```
+
+## 独立一致性验证
+
+使用固定标定矩阵，在不同温度和静磁场环境运行24组验证，输出三轴残差、总场/增量一致性与MaPS梯度X。配置及操作见 [独立验证说明](docs/consistency_validation_usage.md)。

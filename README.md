@@ -69,6 +69,10 @@ roslaunch sensor_array_bringup array.launch config:=$(rospack find sensor_array_
 
 无需硬件的验证：`catkin build`、`catkin run_tests` 和 `catkin_test_results`。伪终端测试不代替 CDC 实物的吞吐与热拔插测试。
 
+## 双臂磁场扫描框架
+
+`magnetic_scan` 提供可配置的 Diana7 + FR5 启动、静止视觉初始对正、JSON 相对点位扫描、关键点自动修正和磁场采样记录。包含无需硬件的 mock 模式；启动不会自动执行扫描，实机配置须填写工具外参及未连接机械臂的实测关节状态。使用方式见 [magnetic_scan 文档](src/magnetic_scan/README.md)。
+
 ## TODO
 
 需要明确一下传感器ID的解析，现有代码仅依赖bus/mask

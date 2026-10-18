@@ -1,0 +1,42 @@
+# Runnable in mock mode. Physical geometry and source tool MUST be measured/configured before hardware use.
+source_arm: arm1
+points_file: points.example.json
+output_dir: ../../../data/magnetic_scan
+planning_frame: world
+planning_link: diana7_ee_link
+vision_frame: lab_table
+sensor_tracking_frame: diana7_flange_calib
+source_tracking_frame: '{source_arm}_flange_calib'
+# Illustrative geometry ONLY: replace with actual visual-body -> array-center transform.
+tracking_to_sensor:
+  translation_m: [0, 0, -0.1666]
+  quaternion_xyzw: [0.7071067811865475, 0.7071067811865475, 0, 0]
+# Required physical magnetic center and axis; identity here is a mock placeholder.
+tracking_to_source:
+  translation_m: [0, 0, 0]
+  quaternion_xyzw: [0, 0, 0, 1]
+# MoveIt link -> true array center. Do not assume bracket TCP equals the array center.
+planning_link_to_sensor:
+  translation_m: [0, 0, 0.1666]
+  quaternion_xyzw: [0, 0, 0, 1]
+source_to_sensor_quaternion_xyzw: [1, 0, 0, 0]
+center_distance_range_m: [0.05, 0.2] # mock range, configure for your actual source
+parameters: {} # defaults documented in README
+sampling:
+  corrected_topic: /array_01/maggrad/sample_corr
+  raw_topic: /array_01/serial_frame_bridge/raw_frames
+  protocol_topic: /array_01/maggrad/sample
+  require_identity_verified: true
+  expected:
+    ak: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+hardware:
+  geometry_confirmed: false
+  diana7_ip: 192.168.31.200
+  source_ip: '' # empty selects the upstream FR5 IP for source_arm; may override explicitly
+  sensor_tool: calibrated_bracket
+  source_tool: null # supply actual tool name
+  inactive_tool: none # set to actual installed tool, even when disconnected
+  inactive_joint_positions:
+    arm1: {} # six measured arm1_joint_1 ... arm1_joint_6 in radians, when arm1 is inactive
+    arm2: {} # six measured arm2_joint_1 ... arm2_joint_6 in radians, when arm2 is inactive
+  sensor_config: ../../sensor_array_bringup/config/single_array.yaml
