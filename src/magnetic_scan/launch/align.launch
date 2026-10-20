@@ -1,0 +1,9 @@
+<launch>
+  <arg name="config" default="$(find magnetic_scan)/config/experiment.arm2.yaml"/>
+  <arg name="source_arm" default="" doc="Empty uses source_arm from config"/>
+  <arg name="start_vision" default="true"/>
+  <arg name="source_args" default="$(eval '--source-arm ' + arg('source_arm') if arg('source_arm') else '')"/>
+  <arg name="vision_args" default="$(eval '--vision' if arg('start_vision') else '')"/>
+  <node pkg="magnetic_scan" type="scan_bringup" name="magnetic_align_bringup" output="screen" required="true"
+        args="--align --config &quot;$(arg config)&quot; $(arg source_args) $(arg vision_args)"/>
+</launch>

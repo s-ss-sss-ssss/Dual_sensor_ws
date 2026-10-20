@@ -6,7 +6,8 @@ import rospy
 from std_msgs.msg import String
 from std_srvs.srv import Trigger, TriggerResponse
 from .configuration import load_config, load_points
-from .engine import Engine
+from .engine import AlignmentEngine, Engine
+from .initial_pose import SETUP_KEYS
 from .recording import Recorder
 from .ros_adapters import JointMonitor, RosMotion, RosVision
 from .ros_recording import BagCapture, RosSampler
@@ -16,8 +17,10 @@ class ScanNode:
     def __init__(self):
         self.path = rospy.get_param('~config')
         self.source_arm = rospy.get_param('~source_arm', None)
-        self.config = load_config(self.path, self.source_arm, hardware=True)
-        load_points(self.config['points_file'])
+        self.alignment = rospy.get_param('~alignment', False)
+        self.config = load_config(self.path, self.source_arm, hardware=True, alignment=self.alignment)
+        if not self.alignment:
+            load_points(self.config['points_file'])
         self.lock = threading.Lock()
         self.cancel = threading.Event()
         self.worker = None
@@ -56,23 +59,27 @@ class ScanNode:
         engine_ran = False
         state = 'FAILED'
         try:
-            c = load_config(self.path, self.source_arm, hardware=True)
-            for key in ('source_arm', 'planning_frame', 'planning_link', 'vision_frame', 'sensor_tracking_frame',
-                        'source_tracking_frame', 'tracking_to_sensor', 'tracking_to_source', 'planning_link_to_sensor', 'hardware'):
-                if c[key] != self.config[key]:
+            c = load_config(self.path, self.source_arm, hardware=True, alignment=self.alignment)
+            for key in SETUP_KEYS:
+                if c.get(key) != self.config.get(key):
                     raise ValueError('physical setup changed; restart experiment nodes before scanning: ' + key)
-            points = load_points(c['points_file'])
+            points = {'points': []} if self.alignment else load_points(c['points_file'])
             recorder = Recorder(c, points)
             self.output = str(recorder.path)
             self.set_status('INITIALIZING', None)
-            capture = BagCapture(c, recorder.path)
+            if not self.alignment:
+                capture = BagCapture(c, recorder.path)
             joints = JointMonitor(c)
             self.motion = RosMotion(c, joints)
             vision = RosVision(c, joints)
-            sampler = RosSampler(c, joints)
-            engine = Engine(c, points, self.motion, vision, sampler, recorder,
-                            cancelled=lambda: self.cancel.is_set() or rospy.is_shutdown(),
-                            status=self.set_status, health=capture.health)
+            options = dict(cancelled=lambda: self.cancel.is_set() or rospy.is_shutdown(),
+                           status=self.set_status)
+            if self.alignment:
+                engine = AlignmentEngine(c, self.motion, vision, recorder, **options)
+            else:
+                sampler = RosSampler(c, joints)
+                engine = Engine(c, points, self.motion, vision, sampler, recorder,
+                                health=capture.health, **options)
             engine_ran = True
             state = engine.run()
         except Exception as error:
@@ -89,6 +96,8 @@ class ScanNode:
                     joints.close()
                 if vision:
                     vision.listener.unregister()
+                if self.motion and hasattr(self.motion, 'listener'):
+                    self.motion.listener.unregister()
                 if capture:
                     capture.close()
             except Exception as error:

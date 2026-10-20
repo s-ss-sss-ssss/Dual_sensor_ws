@@ -28,6 +28,10 @@ class Recorder:
         self.events.write(json.dumps(dict(time=time.time(), event=kind, **data), default=serializable, allow_nan=False) + '\n')
         self.events.flush()
 
+    def artifact(self, name, data):
+        (self.path / name).write_text(json.dumps(data, indent=2, default=serializable,
+                                               allow_nan=False), encoding='utf-8')
+
     def point(self, data):
         self.points.write(json.dumps(data, default=serializable, allow_nan=False) + '\n')
         self.points.flush()

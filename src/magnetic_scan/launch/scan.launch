@@ -1,6 +1,6 @@
 <launch>
-  <arg name="config"/>
-  <arg name="source_arm" default="arm1"/>
+  <arg name="config" default="$(find magnetic_scan)/config/experiment.arm2.yaml"/>
+  <arg name="source_arm" default="" doc="Empty uses source_arm from config"/>
   <node pkg="magnetic_scan" type="scan_node" name="magnetic_scan" output="screen" required="true">
     <param name="config" value="$(arg config)"/>
     <param name="source_arm" value="$(arg source_arm)"/>

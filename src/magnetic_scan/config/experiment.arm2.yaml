@@ -1,0 +1,39 @@
+# Geometry comes from upstream tool configuration and visual profiles.
+# vision.transforms_file may select another visual_tool_transforms.yaml.
+# Omit it to use the upstream file; never duplicate TCP offsets here.
+source_arm: arm2
+points_file: points.example.json
+output_dir: ../../../data/magnetic_scan
+initial_pose_file: ../../../data/magnetic_scan/initial_pose.arm2.json
+alignment:
+  target_distance_m: 0.1
+planning_frame: world
+planning_link: diana7_ee_link
+vision_frame: lab_table
+sensor_tracking_frame: sensor_array_calib
+source_tracking_frame: '{source_arm}_flange_calib'
+sensor_tcp_frame: sensor_array
+source_tcp_frame: '{source_arm}_em_tcp'
+vision:
+  sensor_profile: default
+  source_profile: default
+source_to_sensor_quaternion_xyzw: [1, 0, 0, 0]
+center_distance_range_m: [0.05, 0.2]
+parameters: {}
+sampling:
+  corrected_topic: /array_01/maggrad/sample_corr
+  raw_topic: /array_01/serial_frame_bridge/raw_frames
+  protocol_topic: /array_01/maggrad/sample
+  require_identity_verified: true
+  expected:
+    ak: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+hardware:
+  geometry_confirmed: true
+  diana7_ip: 192.168.31.200
+  source_ip: 192.168.31.202
+  sensor_tool: calibrated_magnetmeter_array_dual
+  source_tool: calibrated_em4098
+  inactive_tool: em40250
+  connect_inactive_arm: true
+  inactive_ip: 192.168.31.201
+  sensor_config: ../../sensor_array_bringup/config/single_array.yaml

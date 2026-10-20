@@ -12,7 +12,7 @@
   <exec_depend>serial_frame_bridge</exec_depend><exec_depend>maggrad_protocol</exec_depend><exec_depend>sensor_array_bringup</exec_depend>
   <exec_depend>zlab_robots_bringup</exec_depend><exec_depend>zlab_robots_calibration</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend><exec_depend>diana7_hardware</exec_depend><exec_depend>fr5_hardware</exec_depend>
-  <exec_depend>triple_arm_moveit_config</exec_depend><exec_depend>multi_arm_description</exec_depend><exec_depend>xacro</exec_depend>
+  <exec_depend>triple_arm_moveit_config</exec_depend><exec_depend>multi_arm_description</exec_depend><exec_depend>tools_description</exec_depend><exec_depend>xacro</exec_depend>
   <exec_depend>python3-numpy</exec_depend><exec_depend>python3-scipy</exec_depend><exec_depend>python3-yaml</exec_depend>
   <test_depend>python3-nose</test_depend>
 </package>

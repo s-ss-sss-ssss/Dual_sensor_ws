@@ -71,7 +71,7 @@ roslaunch sensor_array_bringup array.launch config:=$(rospack find sensor_array_
 
 ## 双臂磁场扫描框架
 
-`magnetic_scan` 提供可配置的 Diana7 + FR5 启动、静止视觉初始对正、JSON 相对点位扫描、关键点自动修正和磁场采样记录。包含无需硬件的 mock 模式；启动不会自动执行扫描，实机配置须填写工具外参及未连接机械臂的实测关节状态。使用方式见 [magnetic_scan 文档](src/magnetic_scan/README.md)。
+`magnetic_scan` 提供可配置的 Diana7 + FR5 启动、静止视觉初始对正、JSON 相对点位扫描、关键点自动修正和磁场采样记录。包含无需硬件的 mock 模式；启动不会自动执行扫描，当前默认实机配置为 ARM2 携带 calibrated_em4098、Diana7 挂载 calibrated_magnetmeter_array_dual，机器人及视觉中心位姿统一使用工具 TCP/视觉 profile，完整 launch 自动启动三臂硬件及视觉，ARM1 使用真实关节反馈；双臂模式需填写未连接臂的实测关节状态。使用方式见 [magnetic_scan 文档](src/magnetic_scan/README.md)。
 
 ## TODO
 

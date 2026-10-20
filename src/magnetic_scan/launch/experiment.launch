@@ -1,8 +1,11 @@
 <launch>
-  <arg name="config"/>
-  <arg name="source_arm" default="arm1"/>
-  <arg name="start_vision" default="false"/>
+  <arg name="config" default="$(find magnetic_scan)/config/experiment.arm2.yaml"/>
+  <arg name="source_arm" default="" doc="Empty uses source_arm from config"/>
+  <arg name="start_vision" default="true"/>
   <arg name="start_sensors" default="false"/>
+  <arg name="source_args" default="$(eval '--source-arm ' + arg('source_arm') if arg('source_arm') else '')"/>
+  <arg name="vision_args" default="$(eval '--vision' if arg('start_vision') else '')"/>
+  <arg name="sensor_args" default="$(eval '--sensors' if arg('start_sensors') else '')"/>
   <node pkg="magnetic_scan" type="scan_bringup" name="magnetic_scan_bringup" output="screen" required="true"
-        args="--config &quot;$(arg config)&quot; --source-arm $(arg source_arm) $(eval '--vision' if arg('start_vision') == 'true' else '') $(eval '--sensors' if arg('start_sensors') == 'true' else '')"/>
+        args="--config &quot;$(arg config)&quot; $(arg source_args) $(arg vision_args) $(arg sensor_args)"/>
 </launch>

@@ -1,5 +1,6 @@
 """Experiment state machine, shared by ROS and deterministic mock adapters."""
 from .geometry import aligned_target, inverse, limited_step, offset_target, residual, transform
+from .initial_pose import load_initial_pose, make_initial_pose, save_initial_pose
 
 
 class ScanError(RuntimeError):
@@ -49,8 +50,9 @@ class Engine:
 
     def command(self, target):
         self.check()
+        self.motion.sensor_pose()  # require a fresh complete robot TF before motion
         # Convert physical sensor target to the exact configured MoveIt link.
-        link_to_sensor = transform(self.config['planning_link_to_sensor'])
+        link_to_sensor = self.motion.link_to_sensor
         cmd = self.mapping @ target @ inverse(link_to_sensor)
         self.recorder.event('motion_command', point_id=self.point_id, stage=self.stage,
                             target_vision=target, command_planning_link=cmd)
@@ -83,24 +85,45 @@ class Engine:
             observation = self.observe()
         raise AssertionError('unreachable')
 
+    def validate_geometry(self):
+        self.check()
+        self.motion.validate_geometry(self.check)
+        self.vision.validate_geometry(self.check)
+        self.config['resolved_geometry'] = dict(
+            mode=self.motion.geometry_mode,
+            robot_sensor_frame=self.config['robot_sensor_frame'],
+            planning_link=self.config['planning_link'],
+            fixed_transform=self.motion.link_to_sensor.tolist(),
+            visual_profiles=self.config['visual_profiles'])
+        self.recorder.artifact('geometry.json', self.config['resolved_geometry'])
+
+    def prepare(self):
+        self.validate_geometry()
+        self.check()
+        saved = load_initial_pose(self.config)
+        self.recorder.artifact('initial_pose.json', saved)
+        self.state('RESTORING')
+        self.motion.restore_joints(saved['joints'], self.check)
+        self.motion.wait_still(self.check)
+        self.motion.wait(self.p['settle_s'], self.check)
+        self.recorder.event('start_restored', **self.motion.snapshot())
+        self.state('START_CHECKING')
+        first = self.observe()
+        actual = inverse(first['source']) @ first['sensor']
+        pos, angle = residual(actual, transform(saved['relative_pose']))
+        self.recorder.event('start_residual', translation_m=pos, rotation_rad=angle)
+        if pos > self.p['position_tolerance_m'] or angle > self.p['angle_tolerance_rad']:
+            raise ScanError('starting relative pose outside tolerance: %.6f m, %.6f rad' % (pos, angle))
+        self.source_initial = first['source'].copy()
+        self.mapping = self.motion.sensor_pose() @ inverse(first['sensor'])
+        self.origin = first['sensor'].copy()
+        self.recorder.event('origin', sensor_vision=self.origin, source_vision=self.source_initial,
+                            stage=self.stage)
+
     def run(self):
         result = None
         try:
-            self.state('OBSERVING')
-            self.motion.wait_still(self.check)
-            first = self.observe()
-            self.source_initial = first['source'].copy()
-            self.mapping = self.motion.sensor_pose() @ inverse(first['sensor'])
-            rotation = transform(dict(translation_m=[0, 0, 0],
-                                     quaternion_xyzw=self.config['source_to_sensor_quaternion_xyzw']))[:3, :3]
-            target = aligned_target(first['source'], first['sensor'], rotation,
-                                    self.config['center_distance_range_m'])
-            self.state('ALIGNING')
-            aligned = self.correct(target, first)
-            # Freeze the measured, converged origin, rather than an unachieved ideal pose.
-            self.origin = aligned['sensor'].copy()
-            self.recorder.event('origin', sensor_vision=self.origin, source_vision=self.source_initial,
-                                alignment_target=target, stage=self.stage)
+            self.prepare()
             for index, point in enumerate(self.points):
                 self.point_id = point['id']
                 target = offset_target(self.origin, point['offset_m'])
@@ -109,7 +132,7 @@ class Engine:
                 self.state('MOVING')
                 result['command_planning_link'] = self.command(target)
                 self.motion.wait(point.get('settle_s', self.p['settle_s']), self.check)
-                check_vision = index in (0, len(self.points) - 1) or point.get('vision_check', False)
+                check_vision = point.get('vision_check', False)
                 observation = None
                 if check_vision:
                     self.state('CHECKING')
@@ -120,6 +143,8 @@ class Engine:
                               last_visual_stamp=self.last_vision['stamp'],
                               actual=self.motion.snapshot(),
                               final_command_planning_link=self.last_command)
+                self.vision.validate_geometry(self.check)
+                self.motion.sensor_pose()
                 self.state('SAMPLING')
                 result['samples'] = self.sampler.collect(point.get('sample_s', self.p['sample_s']), self.check)
                 self.check()
@@ -136,5 +161,43 @@ class Engine:
                 self.recorder.point(result)
             state = 'STOPPED' if isinstance(error, Stopped) else 'FAILED'
             self.status(state, self.point_id)
+            self.recorder.finish(state, str(error))
+            return state
+
+
+class AlignmentEngine(Engine):
+    """Determine and persist a start without loading points or collecting samples."""
+    def __init__(self, config, motion, vision, recorder, **kwargs):
+        super().__init__(config, {'points': []}, motion, vision, None, recorder, **kwargs)
+
+    def run(self):
+        try:
+            self.validate_geometry()
+            self.state('OBSERVING')
+            self.motion.wait_still(self.check)
+            self.motion.wait(self.p['settle_s'], self.check)
+            first = self.observe()
+            self.source_initial = first['source'].copy()
+            self.mapping = self.motion.sensor_pose() @ inverse(first['sensor'])
+            rotation = transform(dict(translation_m=[0, 0, 0],
+                                     quaternion_xyzw=self.config['source_to_sensor_quaternion_xyzw']))[:3, :3]
+            target = aligned_target(first['source'], first['sensor'], rotation,
+                                    self.config['center_distance_range_m'],
+                                    self.config['alignment']['target_distance_m'])
+            self.state('ALIGNING')
+            aligned = self.correct(target, first)
+            self.motion.wait_still(self.check)
+            saved = make_initial_pose(self.config, aligned, self.motion.snapshot())
+            self.check()
+            self.recorder.artifact('initial_pose.json', saved)
+            save_initial_pose(self.config, saved)
+            self.recorder.event('initial_pose_saved', path=self.config['initial_pose_file'])
+            self.status('COMPLETE', None)
+            self.recorder.finish('COMPLETE', '')
+            return 'COMPLETE'
+        except Exception as error:
+            self.motion.stop()
+            state = 'STOPPED' if isinstance(error, Stopped) else 'FAILED'
+            self.status(state, None)
             self.recorder.finish(state, str(error))
             return state

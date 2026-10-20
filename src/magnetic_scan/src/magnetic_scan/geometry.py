@@ -46,11 +46,15 @@ def average(transforms):
     return out
 
 
-def aligned_target(source, sensor, relative_rotation, distance_range):
+def aligned_target(source, sensor, relative_rotation, distance_range, target_distance=None):
     axis = source[:3, 2]
     distance = float(axis @ (sensor[:3, 3] - source[:3, 3]))
     if not distance_range[0] <= distance <= distance_range[1] or distance <= 0:
         raise ValueError('initial axial distance %.6f m is outside configured positive range' % distance)
+    if target_distance is not None:
+        if not distance_range[0] <= target_distance <= distance_range[1]:
+            raise ValueError('target distance outside configured range')
+        distance = target_distance
     out = np.eye(4)
     out[:3, :3] = source[:3, :3] @ relative_rotation
     out[:3, 3] = source[:3, 3] + axis * distance

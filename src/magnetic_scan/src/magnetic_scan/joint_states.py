@@ -8,8 +8,11 @@ from .configuration import load_config
 
 
 class StateMerger:
-    def __init__(self, source_arm, inactive, max_age):
+    def __init__(self, source_arm, inactive, max_age, connect_inactive_arm=False):
         self.source_arm, self.inactive, self.max_age = source_arm, inactive, max_age
+        self.arms = ('diana7', source_arm)
+        if connect_inactive_arm:
+            self.arms += ('arm2' if source_arm == 'arm1' else 'arm1',)
         self.latest = {}
 
     def update(self, arm, stamp, received, names, positions, velocities):
@@ -28,7 +31,7 @@ class StateMerger:
         return True
 
     def combined(self, now, ros_now):
-        arms = ('diana7', self.source_arm)
+        arms = self.arms
         if any(arm not in self.latest for arm in arms):
             return None
         rows = [self.latest[arm] for arm in arms]
@@ -46,10 +49,12 @@ class StateMerger:
 
 def main():
     rospy.init_node('scan_joint_states')
-    c = load_config(rospy.get_param('~config'), rospy.get_param('~source_arm'), hardware=True)
+    c = load_config(rospy.get_param('~config'), rospy.get_param('~source_arm'), hardware=True,
+                    alignment=rospy.get_param('~alignment', False))
     inactive = 'arm2' if c['source_arm'] == 'arm1' else 'arm1'
-    merger = StateMerger(c['source_arm'], c['hardware']['inactive_joint_positions'][inactive],
-                         c['parameters']['joint_max_age_s'])
+    connected = c['hardware'].get('connect_inactive_arm', False)
+    fixed = {} if connected else c['hardware']['inactive_joint_positions'][inactive]
+    merger = StateMerger(c['source_arm'], fixed, c['parameters']['joint_max_age_s'], connected)
     # Validate measured inactive geometry against the loaded URDF joint limits.
     import xml.etree.ElementTree as ET
     robot = ET.fromstring(rospy.get_param('/robot_description'))
@@ -67,7 +72,7 @@ def main():
             merger.update(arm, msg.header.stamp.to_sec(), time.monotonic(), msg.name, msg.position, msg.velocity)
 
     subs = [rospy.Subscriber('/' + arm + '/joint_states', JointState, callback, callback_args=arm, queue_size=20)
-            for arm in ('diana7', c['source_arm'])]
+            for arm in merger.arms]
     rate = rospy.Rate(100)
     while not rospy.is_shutdown():
         with lock:
@@ -78,5 +83,5 @@ def main():
             msg.name, msg.position, msg.velocity = combined['name'], combined['position'], combined['velocity']
             pub.publish(msg)
         else:
-            rospy.logwarn_throttle(5., 'Waiting for fresh joint states from both connected arms')
+            rospy.logwarn_throttle(5., 'Waiting for fresh joint states from all connected arms')
         rate.sleep()
